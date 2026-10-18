@@ -43,6 +43,22 @@ python manage.py cargar_historicos --desde 2026-09-01   # tramo reciente
 
 El comando es idempotente: se puede repetir sin duplicar.
 
+### Base de datos fuera de OneDrive (opcional pero recomendado)
+
+`db.sqlite3` vive junto al proyecto por defecto, pero OneDrive y SQLite se
+pelean (sincroniza el archivo mientras Django escribe: riesgo de
+`database is locked` o corrupción). Para moverla:
+
+```powershell
+# 1. Cierra el servidor. 2. Mueve la base. 3. Define la variable:
+Move-Item db.sqlite3 C:\Datos\est_campus\db.sqlite3
+$env:ESTCAMPUS_DB_PATH = "C:\Datos\est_campus\db.sqlite3"
+python manage.py check   # confirma que arranca con la nueva ruta
+```
+
+Sin la variable se usa `db.sqlite3` junto al proyecto (como hasta ahora).
+`db.sqlite3`, `db_vercel.sqlite3`, `logs/` y `tmp/` están en `.gitignore`.
+
 ### Estado actual de la base local
 
 `db.sqlite3` contiene el **historial completo** de ambas estaciones
@@ -54,7 +70,7 @@ se puede repetir sin duplicar (la restriccion unica estacion+timestamp y
 ## Pruebas y verificaciones
 
 ```powershell
-python manage.py test estaciones            # 20 pruebas del endpoint
+python manage.py test estaciones            # 48 pruebas (endpoint + Ambient)
 python scripts\16_revisar_frontend.py       # sintaxis JS + estaticos + plantilla
 python scripts\17_probar_servidor.py        # servidor en vivo de punta a punta
 ```
