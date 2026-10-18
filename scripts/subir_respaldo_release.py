@@ -15,7 +15,7 @@ import sys
 import time
 import urllib.request
 
-REPO = "estebanLopezU/mineria_de_datos_proyecto"
+REPO = "estebanLopezU/Datos-Ambientales-en-la-epoca-de-IA-del-analisis-a-la-prediccion"
 DEFAULTS = ("tmp\\db_historico_2002_2026.zip", "respaldo-db-2002-2026")
 
 

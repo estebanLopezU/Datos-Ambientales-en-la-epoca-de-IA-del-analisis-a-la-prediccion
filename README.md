@@ -1,4 +1,4 @@
-# Est Campus Unal - estaciones meteorologicas
+# Datos Ambientales en la época de IA: del análisis a la predicción
 
 Dashboard y API para las estaciones automaticas **La Nubia (24)** y
 **Palogrande-Postgrados (29)**, Universidad Nacional de Colombia, sede Manizales.
@@ -73,10 +73,10 @@ comprimidos como assets del Release `respaldo-db-2002-2026`:
 
 ```powershell
 # 1. Clonar el codigo:
-git clone https://github.com/estebanLopezU/mineria_de_datos_proyecto.git
-cd mineria_de_datos_proyecto
+git clone https://github.com/estebanLopezU/Datos-Ambientales-en-la-epoca-de-IA-del-analisis-a-la-prediccion.git
+cd Datos-Ambientales-en-la-epoca-de-IA-del-analisis-a-la-prediccion
 # 2. Descargar los dos zips del Release a la raiz y descomprimir:
-#    https://github.com/estebanLopezU/mineria_de_datos_proyecto/releases/tag/respaldo-db-2002-2026
+#    https://github.com/estebanLopezU/Datos-Ambientales-en-la-epoca-de-IA-del-analisis-a-la-prediccion/releases/tag/respaldo-db-2002-2026
 Expand-Archive db_historico_2002_2026.zip -DestinationPath .
 Expand-Archive datos_crudos_2002_2026.zip -DestinationPath .
 # 3. Arrancar (verificar sha256 contra el MANIFIESTO.txt si se desea):
