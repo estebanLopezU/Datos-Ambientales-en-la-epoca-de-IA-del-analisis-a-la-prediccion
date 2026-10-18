@@ -1,0 +1,46 @@
+[18/Oct/2026 15:35:52] "GET / HTTP/1.1" 200 34054
+[18/Oct/2026 15:35:52] "GET /ambient/?consola=LUNA HTTP/1.1" 200 127755
+[18/Oct/2026 15:35:52] "GET /api/v1/estaciones/ultima/ HTTP/1.1" 200 1575
+[18/Oct/2026 15:35:52] "GET /api/v1/estaciones/serie/?estacion=24&modo=reciente HTTP/1.1" 200 27458
+[18/Oct/2026 15:35:52] "GET /api/v1/ambient/consolas/ HTTP/1.1" 200 383
+[18/Oct/2026 15:35:53] "GET /api/v1/estaciones/pronostico/?estacion=24 HTTP/1.1" 200 703
+[18/Oct/2026 15:35:54] "GET /api/v1/estaciones/historial/?estacion=24&anio=2024 HTTP/1.1" 200 3590
+[18/Oct/2026 15:35:54] "POST /api/v1/estaciones/datos/ HTTP/1.1" 201 61
+[18/Oct/2026 15:35:54,866] - Broken pipe from ('127.0.0.1', 51735)
+[18/Oct/2026 15:36:19] "GET /api/v1/estaciones/ultima/ HTTP/1.1" 200 1551
+[18/Oct/2026 15:36:20,030] - Broken pipe from ('127.0.0.1', 61533)
+[18/Oct/2026 15:36:51] "GET /api/v1/estaciones/ultima/ HTTP/1.1" 200 1551
+[18/Oct/2026 15:36:51,094] - Broken pipe from ('127.0.0.1', 64267)
+[18/Oct/2026 15:37:36] "GET /api/v1/estaciones/ultima/ HTTP/1.1" 200 1575
+[18/Oct/2026 15:37:36,564] - Broken pipe from ('127.0.0.1', 57322)
+[18/Oct/2026 15:38:25] "GET /ambient/?consola=LUNA HTTP/1.1" 200 127755
+[18/Oct/2026 15:38:26] "GET /static/js/ambient_cielo.js HTTP/1.1" 200 7732
+[18/Oct/2026 15:38:26] "GET /static/css/ambient_cielo.css HTTP/1.1" 200 3010
+[18/Oct/2026 15:38:26] "GET /api/v1/ambient/ultima/ HTTP/1.1" 200 743
+[18/Oct/2026 15:38:26] "GET /api/v1/ambient/serie/ HTTP/1.1" 200 232023
+[18/Oct/2026 15:38:27] "GET /api/v1/ambient/pronostico/ HTTP/1.1" 200 1080
+[18/Oct/2026 15:38:40] "GET /ambient/ HTTP/1.1" 200 3935
+[18/Oct/2026 15:38:41] "GET / HTTP/1.1" 200 34054
+[18/Oct/2026 15:38:41] "GET /static/css/dashboard.css HTTP/1.1" 200 24980
+[18/Oct/2026 15:38:41] "GET /static/js/dashboard.js HTTP/1.1" 200 54076
+[18/Oct/2026 15:38:41] "GET /static/img/mzl.jpg HTTP/1.1" 200 560352
+[18/Oct/2026 15:38:41] "GET /static/img/biblio.jpg HTTP/1.1" 200 735049
+[18/Oct/2026 15:38:41] "GET /static/img/palogrande2.jpg HTTP/1.1" 200 349617
+[18/Oct/2026 15:38:41] "GET /static/img/palogrande.png HTTP/1.1" 200 1459358
+[18/Oct/2026 15:38:41] "GET /static/img/nubia.png HTTP/1.1" 200 1726076
+[18/Oct/2026 15:38:41] "GET /static/img/cable.png HTTP/1.1" 200 1582850
+[18/Oct/2026 15:38:42] "GET /api/v1/estaciones/pronostico/?estacion=24 HTTP/1.1" 200 703
+[18/Oct/2026 15:38:42] "GET /api/v1/estaciones/serie/?estacion=24&modo=reciente HTTP/1.1" 200 27458
+[18/Oct/2026 15:38:42] "GET /api/v1/estaciones/serie/?estacion=29&modo=reciente HTTP/1.1" 200 27655
+[18/Oct/2026 15:38:42] "GET /api/v1/estaciones/ultima/ HTTP/1.1" 200 1575
+[18/Oct/2026 15:38:42] "GET /api/v1/estaciones/pronostico/?estacion=24 HTTP/1.1" 200 703
+[18/Oct/2026 15:38:43] "GET /api/v1/estaciones/pronostico/?estacion=29 HTTP/1.1" 200 716
+[18/Oct/2026 15:38:43] "GET /api/v1/estaciones/pronostico/?estacion=29 HTTP/1.1" 200 716
+[18/Oct/2026 15:38:44] "GET /api/v1/estaciones/serie/?estacion=29&modo=reciente HTTP/1.1" 200 27655
+[18/Oct/2026 15:38:52] "GET /api/v1/estaciones/serie/?estacion=24&modo=reciente HTTP/1.1" 200 27458
+[18/Oct/2026 15:38:59] "GET /api/v1/estaciones/historial/?estacion=24 HTTP/1.1" 200 6545
+[18/Oct/2026 15:39:01] "GET /api/v1/estaciones/historial/?estacion=29 HTTP/1.1" 200 7107
+[18/Oct/2026 15:39:02] "GET /api/v1/estaciones/serie/?estacion=29&modo=reciente HTTP/1.1" 200 27655
+[18/Oct/2026 15:44:02] "GET /api/v1/estaciones/ultima/ HTTP/1.1" 200 1575
+[18/Oct/2026 15:44:02] "GET /ambient/?consola=LUNA HTTP/1.1" 200 127755
+[18/Oct/2026 15:44:03,301] - Broken pipe from ('127.0.0.1', 61486)
