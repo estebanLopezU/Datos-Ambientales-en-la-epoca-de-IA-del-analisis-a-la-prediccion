@@ -31,14 +31,25 @@ tmp/*.zip
 tmp/*.log
 tmp/*.err
 
-# Dependencias de Node (solo para las pruebas de navegador en scripts/)
-node_modules/
-package-lock.json
+# Tenencias del servidor Apache / web y logs:
+# servidor.log y servidor.err.log son legibles solo si corres el servidor
+# con el script scripts/05_arrancar_servidor.ps1 (los redirige a logs/).
+servidor.log
+servidor.err.log
 
-# Windows / OneDrive / editores
-Thumbs.db
-desktop.ini
-~$*
-.vscode/
-.idea/
-*.swp
+# Logs de sincronizacion/sincronizacion de la tarea del programa y
+# logs de despliegue de vercel.
+logs/*.log
+logs/*.err
+logs/_db_build.err
+logs/_db_build.log
+logs/_dep2.log
+logs/_deploy.log
+logs/_diag2.log
+logs/_tok.txt
+logs/_vc_login.log
+
+# Artefactos del deploy en Vercel (regeneran automaticamente desde
+# scripts/crear_db_vercel.py).
+staticfiles/
+db_vercel.sqlite3
