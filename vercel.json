@@ -1,0 +1,31 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "manage.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "15mb",
+        "runtime": "python3.12"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "manage.py"
+    }
+  ],
+  "env": {
+    "PYTHONUNBUFFERED": "1",
+    "SECRET_KEY": "@vercel-generated-secret",
+    "ALLOWED_HOSTS": ".vercel.app",
+    "VERCEL": "1",
+    "ESTCAMPUS_DB_PATH": ""
+  },
+  "build": {
+    "env": {
+      "EN_VERCEL": "1"
+    }
+  }
+}
