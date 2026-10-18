@@ -1,40 +1,32 @@
-# Base de datos local (se regenera con migrate + cargar_historicos)
-# La base con historico pesa ~1.1 GB: NO se sube a GitHub.
+# Base de datos local: NO sube al repo (1 GB, GitHub rechaza >100 MB).
+# El historico COMPLETO esta publicado como Release: respaldo-db-2002-2026
+# (db_historico_2002_2026.zip con MANIFIESTO.txt y sha256).
 db.sqlite3
 db.sqlite3-journal
 db.sqlite3-wal
 db.sqlite3-shm
 
-# Clave secreta local generada al arrancar
+# Secretos: NUNCA al repo publico (permiten forjar sesiones / acceder a Vercel).
+# Se regeneran: .secret_key se crea solo al arrancar; .env.local lo genera
+# `vercel env pull`. Ejemplos seguros: .env.local.example, .secret_key.example.
 .secret_key
+.env*
 
-# Logs del servidor local
-servidor.log
-servidor.err.log
-logs/
-*.log
-*.err
-
-# Python
+# Python: binarios de cache, nunca al repo.
 __pycache__/
 *.py[cod]
 *.egg-info/
 .venv/
 venv/
 
-# Datos crudos pesados (308 + 197 MB): no van al repo.
-# Se cargan con: python manage.py cargar_historicos
+# Datos crudos: los CSV (142 + 166 MB) y los xlsx (91 + 106 MB) superan el
+# limite de 100 MB por archivo de GitHub. Estan publicados comprimidos como
+# asset del Release respaldo-db-2002-2026 (datos_crudos_2002_2026.zip).
 Est_Datos/
 Excel_Organizado/
 
-# Archivos temporales de verificacion
-_*.txt
-tmp/
-pagina_luna*.html
-
-# Artefactos del deploy en Vercel (se regeneran con los scripts)
-staticfiles/
-db_vercel.sqlite3
+# Zip del respaldo (ya publicado en el Release; no duplicar en git).
+tmp/*.zip
 
 # Dependencias de Node (solo para las pruebas de navegador en scripts/)
 node_modules/
@@ -47,5 +39,3 @@ desktop.ini
 .vscode/
 .idea/
 *.swp
-.vercel
-.env*

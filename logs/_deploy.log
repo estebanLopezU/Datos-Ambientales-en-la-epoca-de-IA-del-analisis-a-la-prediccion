@@ -1,0 +1,41 @@
+Vercel CLI 59.17.0 (Node.js 22.17.0)
+Deploying est-campus-unal
+Uploading [--------------------] (0.0B/87.4MB)
+Uploading [=====---------------] (21.8MB/87.4MB)
+Uploading [==========----------] (43.7MB/87.4MB)
+Uploading [===============-----] (65.5MB/87.4MB)
+Uploading [====================] (87.4MB/87.4MB)
+  Inspect         https://vercel.com/esteban290604-1972s-projects/est-campus-unal/ZwszB8KVNPX3AuLbTgPcZVDW349T
+  Production      https://est-campus-unal-bbrt5flnl-esteban290604-1972s-projects.vercel.app
+https://est-campus-unal-bbrt5flnl-esteban290604-1972s-projects.vercel.appBuilding…
+Building…
+Running build in Washington, D.C., USA (East) – iad1
+Build machine configuration: 2 cores, 8 GB
+Retrieving list of deployment files...
+Downloading 215 deployment files...
+Restored build cache from previous deployment (9wDmT68Vs1Z7GkwPbxwVsJT1fqao)
+Running "vercel build"
+Vercel CLI 64.0.2
+No Python version specified in .python-version, pyproject.toml, or Pipfile.lock. Using python version: 3.12
+Using uv 0.10.11
+Installing required dependencies from requirements.txt...
+Django 6.1.2 detected
+Running collectstatic...
+Compiling Python bytecode...
+Build Completed in /vercel/output [7s]
+Deploying outputs...
+[2K[1A[2K[G  Production      https://est-campus-unal-bbrt5flnl-esteban290604-1972s-projects.vercel.app
+Completing…
+▲ Aliased         https://est-campus-unal.vercel.app
+
+✓ Ready in 1m
+
+Next steps:
+- Automatically deploy changes on every push by connecting Git:
+  vercel git connect
+- Check the deployment response:
+  vercel curl https://est-campus-unal-bbrt5flnl-esteban290604-1972s-projects.vercel.app
+- View build logs:
+  vercel inspect est-campus-unal-bbrt5flnl-esteban290604-1972s-projects.vercel.app --logs
+- Create a new deployment from the same source:
+  vercel redeploy est-campus-unal-bbrt5flnl-esteban290604-1972s-projects.vercel.app
