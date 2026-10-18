@@ -59,6 +59,22 @@ python manage.py check   # confirma que arranca con la nueva ruta
 Sin la variable se usa `db.sqlite3` junto al proyecto (como hasta ahora).
 `db.sqlite3`, `db_vercel.sqlite3`, `logs/` y `tmp/` están en `.gitignore`.
 
+### Respaldo del historico completo (GitHub Releases)
+
+El historial 2002-2026 (4.800.936 lecturas, ~1 GB) **no va al repo** (GitHub
+rechaza archivos >100 MB), pero esta publicado comprimido como Release:
+
+- Tag: `respaldo-db-2002-2026`
+- Asset: `db_historico_2002_2026.zip` (~250 MB, con `MANIFIESTO.txt` y sha256)
+- Restaurar en cualquier PC:
+
+```powershell
+# 1. Descargar el zip a la raiz del proyecto y descomprimir:
+Expand-Archive db_historico_2002_2026.zip -DestinationPath .
+# 2. (opcional) verificar contra el MANIFIESTO.txt del zip
+python manage.py runserver 0.0.0.0:5000
+```
+
 ### Estado actual de la base local
 
 `db.sqlite3` contiene el **historial completo** de ambas estaciones
