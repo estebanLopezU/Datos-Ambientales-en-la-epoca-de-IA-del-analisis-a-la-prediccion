@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ambient en vivo - experimentoUN</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+  <style>
+    .amb-wrap{max-width:1100px;margin:0 auto;padding:24px 16px 64px}
+    .amb-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .amb-estado{font-weight:700;padding:6px 14px;border-radius:999px}
+    .amb-estado.on{background:#14532d;color:#bbf7d0}
+    .amb-estado.off{background:#7f1d1d;color:#fecaca}
+    .amb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:18px 0}
+    .amb-card{background:rgba(15,23,42,.78);border:1px solid rgba(148,163,184,.25);border-radius:14px;padding:14px}
+    .amb-card .k{font-size:.8rem;color:#94a3b8}
+    .amb-card .v{font-size:1.6rem;font-weight:800}
+    .amb-card .u{font-size:.85rem;color:#94a3b8}
+    .amb-tabla{width:100%;border-collapse:collapse;font-size:.85rem}
+    .amb-tabla th,.amb-tabla td{padding:6px 8px;border-bottom:1px solid rgba(148,163,184,.2);text-align:right}
+    .amb-tabla th:first-child,.amb-tabla td:first-child{text-align:left}
+    .amb-ayuda{background:rgba(30,41,59,.85);border:1px dashed rgba(148,163,184,.4);border-radius:12px;padding:14px;margin:18px 0}
+    .amb-ayuda code{background:#0f172a;padding:2px 6px;border-radius:6px}
+    #amb-graf{width:100%;height:280px;background:rgba(15,23,42,.78);border:1px solid rgba(148,163,184,.25);border-radius:14px}
+    .amb-nav{margin-bottom:12px}
+    .amb-nav a{color:#7dd3fc}
+  </style>
+</head>
+<body>
+<div class="amb-wrap">
+  <div class="amb-nav"><a href="/">&larr; Volver al dashboard UNAL</a></div>
+  <div class="amb-head">
+    <h1>Ambient en vivo <small style="color:#94a3b8">experimentoUN · 99</small></h1>
+    {% if ultima %}{% if en_linea %}
+    <span class="amb-estado on">EN LINEA</span>
+    {% else %}<span class="amb-estado off">SIN DATOS RECIENTES</span>{% endif %}
+    {% else %}<span class="amb-estado off">SIN DATOS</span>{% endif %}
+  </div>
+  <p style="color:#94a3b8">Panel aislado: no mezcla con La Nubia (24) ni Palogrande (29).
+  {% if ultima_hora %}Ultimo: <strong>{{ ultima_hora|date:"Y-m-d H:i:s" }}</strong>{% endif %}</p>
+  {% if ultima %}
+  <div class="amb-grid">
+    <div class="amb-card"><div class="k">Temperatura</div><div class="v">{{ ultima.temperatura|default:"—" }}</div><div class="u">C</div></div>
+    <div class="amb-card"><div class="k">Humedad</div><div class="v">{{ ultima.humedad_relativa|default:"—" }}</div><div class="u">%</div></div>
+    <div class="amb-card"><div class="k">Presion</div><div class="v">{{ ultima.presion_barometrica|default:"—" }}</div><div class="u">hPa</div></div>
+    <div class="amb-card"><div class="k">Viento</div><div class="v">{{ ultima.velocidad_viento|default:"—" }}</div><div class="u">m/s {{ ultima.direccion_viento|default:"—" }} g</div></div>
+    <div class="amb-card"><div class="k">Radiacion</div><div class="v">{{ ultima.radiacion_solar|default:"—" }}</div><div class="u">W/m2</div></div>
+    <div class="amb-card"><div class="k">Lluvia</div><div class="v">{{ ultima.precipitacion|default:"—" }}</div><div class="u">mm</div></div>
+  </div>
+  <h2>Grafica 24 h (temperatura)</h2>
+  <canvas id="amb-graf"></canvas>
+  <h2>Ultimos reportes</h2>
+  <table class="amb-tabla">
+    <tr><th>Hora</th><th>Temp</th><th>HR</th><th>Pres</th><th>Viento</th><th>Dir</th><th>Rad</th><th>Lluvia</th></tr>
+    {% for r in recientes %}
+    <tr><td>{{ r.timestamp|date:"m-d H:i:s" }}</td><td>{{ r.temperatura|default:"—" }}</td><td>{{ r.humedad_relativa|default:"—" }}</td><td>{{ r.presion_barometrica|default:"—" }}</td><td>{{ r.velocidad_viento|default:"—" }}</td><td>{{ r.direccion_viento|default:"—" }}</td><td>{{ r.radiacion_solar|default:"—" }}</td><td>{{ r.precipitacion|default:"—" }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <div class="amb-ayuda"><strong>Aun no hay datos del Ambient.</strong><br>
+  Custom Server: IP <code>192.168.137.1</code> puerto <code>5000</code>
+  path <code>/weatherstation/updateweatherstation.php</code></div>
+  {% endif %}
+  <div class="amb-ayuda"><strong>Endpoints:</strong>
+  <code>GET /api/v1/ambient/ultima/</code> ·
+  <code>GET /api/v1/ambient/serie/</code></div>
+</div>
+
+<script>
+(function(){
+  async function cargar(){
+    try{
+      const r = await fetch('/api/v1/ambient/serie/');
+      const j = await r.json();
+      const pts = (j.puntos||[]).filter(p=>p.temperatura!=null);
+      const cv = document.getElementById('amb-graf');
+      if(!cv || !pts.length) return;
+      const ctx = cv.getContext('2d');
+      const W = cv.width = cv.clientWidth*2, H = cv.height = 560;
+      const ts = pts.map(p=>new Date(p.t).getTime());
+      const vs = pts.map(p=>p.temperatura);
+      const t0=Math.min(...ts), t1=(Math.max(...ts)||t0+1);
+      const v0=Math.min(...vs), v1=(Math.max(...vs)||v0+1);
+      const X = t=>(t-t0)/(t1-t0)*(W-80)+60;
+      const Y = v=>H-40-(v-v0)/((v1-v0)||1)*(H-80);
+      ctx.clearRect(0,0,W,H);
+      ctx.strokeStyle='rgba(148,163,184,.4)';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(60,10);ctx.lineTo(60,H-40);ctx.lineTo(W-10,H-40);ctx.stroke();
+      ctx.strokeStyle='#38bdf8';ctx.lineWidth=4;ctx.beginPath();
+      pts.forEach((p,i)=>{const x=X(ts[i]),y=Y(vs[i]);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+      ctx.stroke();
+      ctx.fillStyle='#e2e8f0';ctx.font='24px sans-serif';
+      ctx.fillText(v1.toFixed(1)+' C',8,Y(v1)-8);
+      ctx.fillText(v0.toFixed(1)+' C',8,Y(v0)+28);
+    }catch(e){}
+  }
+  cargar();setInterval(cargar,60000);
+})();
+</script>
+</body>
+</html>

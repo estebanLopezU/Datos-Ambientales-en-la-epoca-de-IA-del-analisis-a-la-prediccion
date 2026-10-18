@@ -1,0 +1,877 @@
+/* Estilos del dashboard de estaciones UNAL - sede Manizales.
+   Tema "observatorio atmosferico": azul noche profundo, numeros tabulares,
+   acentos de color por variable y textura sutil de reticula cientifica.
+
+   Las clases e ids que usa static/js/dashboard.js se conservan intactos. */
+
+:root {
+  --bg: #0a111e;
+  --bg-lateral: #0d1626;
+  --bg-tarjeta: #101c30;
+  --bg-tarjeta-alta: #16263f;
+  --borde: #22344f;
+  --borde-claro: #2e4769;
+  --texto: #e8eef7;
+  --texto-suave: #8fa3bf;
+  --azul: #38bdf8;
+  --cian: #22d3ee;
+  --verde: #34d399;
+  --ambar: #fbbf24;
+  --rojo: #f87171;
+  --violeta: #a78bfa;
+  /* Color por variable (acento superior de cada tarjeta) */
+  --v-temp: #fb7185;
+  --v-hum: #38bdf8;
+  --v-viento: #5eead4;
+  --v-lluvia: #22d3ee;
+  --v-presion: #a78bfa;
+  --v-rad: #fbbf24;
+  --v-sens: #fb923c;
+  --v-uv: #facc15;
+  --radio: 14px;
+  --sombra: 0 10px 30px rgba(2, 6, 18, 0.45);
+  --mono: "Cascadia Code", "Cascadia Mono", Consolas, "Courier New", monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: radial-gradient(1100px 550px at 85% -10%, #12233f 0%, var(--bg) 58%);
+  background-color: var(--bg);
+  color: var(--texto);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+::selection { background: rgba(34, 211, 238, 0.35); }
+
+/* Scrollbar discreta acorde al tema */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb {
+  background: var(--borde-claro); border-radius: 8px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover { background: #3d5a85; }
+
+/* ---------- Fondo rotativo de los campus ---------- */
+.fondo { position: fixed; inset: 0; z-index: -1; overflow: hidden; }
+.fondo-capa {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  opacity: 0; transition: opacity 2.5s ease;
+  transform: scale(1.04);
+}
+.fondo-capa.visible { opacity: 1; }
+/* Velo: foto atenuada + reticula cartografica tenue. Mantiene legible
+   el contenido y le da el toque cientifico. */
+.fondo-velo {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(rgba(148, 178, 220, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 178, 220, 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(10, 17, 30, 0.86) 0%,
+      rgba(10, 17, 30, 0.72) 45%, rgba(10, 17, 30, 0.92) 100%);
+  background-size: 44px 44px, 44px 44px, 100% 100%;
+}
+.fondo-credito {
+  position: fixed; right: 12px; bottom: 10px; z-index: 5;
+  font-size: 0.7rem; color: rgba(232, 238, 247, 0.6);
+  background: rgba(2, 6, 18, 0.5); border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px; padding: 3px 10px; text-decoration: none;
+  backdrop-filter: blur(4px);
+}
+.fondo-credito:hover { color: #fff; }
+
+/* ---------- Estructura con barra lateral ---------- */
+.app { display: flex; min-height: 100vh; }
+
+.barra {
+  width: 248px;
+  flex: 0 0 248px;
+  background: linear-gradient(180deg, #0f1c31 0%, var(--bg-lateral) 100%);
+  border-right: 1px solid var(--borde);
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.marca { display: flex; align-items: center; gap: 10px; }
+.marca-logo {
+  width: 42px; height: 42px; border-radius: 12px;
+  display: grid; place-items: center;
+  font-weight: 700; font-size: 0.95rem; color: #04121f;
+  background: linear-gradient(135deg, var(--cian), var(--azul));
+  box-shadow: 0 6px 18px rgba(34, 211, 238, 0.25);
+}
+.marca-texto { font-weight: 700; font-size: 1rem; line-height: 1.1; letter-spacing: 0.01em; }
+.marca-texto small {
+  display: block; font-weight: 400; color: var(--texto-suave);
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.14em;
+  margin-top: 3px;
+}
+
+.menu { display: flex; flex-direction: column; gap: 4px; }
+.menu-grupo {
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.16em;
+  color: #64789a; margin: 12px 8px 4px;
+}
+.menu-grupo::after {
+  content: ""; display: block; margin-top: 6px;
+  border-bottom: 1px solid var(--borde);
+}
+.menu-item {
+  display: flex; align-items: center; gap: 10px;
+  background: transparent; border: 1px solid transparent; border-radius: 10px;
+  color: var(--texto-suave); padding: 9px 10px; font-size: 0.9rem;
+  cursor: pointer; text-align: left; width: 100%;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.menu-item svg { flex: 0 0 auto; opacity: 0.8; }
+.menu-item:hover { color: var(--texto); background: rgba(56, 189, 248, 0.07); }
+.menu-item.activo {
+  color: var(--texto);
+  background: linear-gradient(90deg, rgba(34, 211, 238, 0.16), rgba(34, 211, 238, 0.05));
+  border-color: rgba(34, 211, 238, 0.35);
+  box-shadow: inset 3px 0 0 var(--cian);
+}
+.insignia {
+  margin-left: auto; background: var(--cian); color: #04121f;
+  font-size: 0.72rem; font-weight: 700; border-radius: 999px;
+  min-width: 22px; height: 22px; display: grid; place-items: center; padding: 0 6px;
+}
+.barra-pie {
+  margin-top: auto; font-size: 0.72rem; color: var(--texto-suave);
+  line-height: 1.6; padding: 10px 8px 0;
+  border-top: 1px solid var(--borde);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+
+.principal { flex: 1; min-width: 0; }
+
+.contenedor {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 24px 24px 48px;
+}
+
+/* ---------- Encabezado ---------- */
+.encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background:
+    linear-gradient(135deg, rgba(34, 211, 238, 0.12), rgba(56, 189, 248, 0.05) 55%, transparent),
+    var(--bg-tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 18px 22px;
+  margin-bottom: 18px;
+  box-shadow: var(--sombra);
+  position: relative;
+  overflow: hidden;
+}
+/* Filete luminoso superior: toque de instrumento */
+.encabezado::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cian), var(--v-rad), transparent);
+  opacity: 0.8;
+}
+
+.encabezado h1 {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.encabezado .sub {
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+  margin-top: 4px;
+  letter-spacing: 0.03em;
+}
+
+.estado-conexion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--texto-suave);
+  background: rgba(2, 6, 18, 0.35);
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-family: var(--mono);
+  letter-spacing: 0.03em;
+}
+
+.punto {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--texto-suave);
+}
+
+.punto.vivo {
+  background: var(--verde);
+  box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.18), 0 0 10px rgba(52, 211, 153, 0.6);
+  animation: pulso 2.4s ease-in-out infinite;
+}
+.punto.muerto { background: var(--rojo); }
+
+@keyframes pulso {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.22), 0 0 8px rgba(52, 211, 153, 0.5); }
+  50% { box-shadow: 0 0 0 6px rgba(52, 211, 153, 0.08), 0 0 14px rgba(52, 211, 153, 0.7); }
+}
+
+/* ---------- Selector de estacion (pestanas) ---------- */
+.pestanas {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  background: var(--bg-tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 6px;
+  box-shadow: var(--sombra);
+}
+
+.pestana {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  color: var(--texto-suave);
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.pestana:hover { color: var(--texto); border-color: var(--borde); transform: translateY(-1px); }
+
+.pestana.activa {
+  background: linear-gradient(160deg, rgba(34, 211, 238, 0.2), rgba(56, 189, 248, 0.1));
+  border-color: rgba(34, 211, 238, 0.5);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(34, 211, 238, 0.14),
+    inset 0 0 0 1px rgba(34, 211, 238, 0.2);
+}
+
+.pestana-nombre { font-size: 1rem; }
+.pestana-codigo {
+  font-size: 0.72rem; opacity: 0.75;
+  font-family: var(--mono); letter-spacing: 0.08em; text-transform: uppercase;
+}
+.pestana.activa .pestana-codigo { color: var(--cian); opacity: 1; }
+
+/* ---------- Bloques por estacion ---------- */
+.estacion-bloque { margin-bottom: 40px; }
+
+/* Solo el panel de la estacion activa es visible */
+.estacion-bloque.oculto { display: none; }
+
+.estacion-titulo {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+/* Tarjeta heroe con la temperatura grande */
+.heroe {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background:
+    linear-gradient(150deg, rgba(34, 211, 238, 0.1), transparent 60%),
+    linear-gradient(160deg, #122138 0%, #0c1626 100%);
+  border: 1px solid var(--borde-claro);
+  border-radius: var(--radio);
+  padding: 16px 22px;
+  box-shadow: var(--sombra);
+  position: relative;
+  overflow: hidden;
+}
+.heroe::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: linear-gradient(180deg, var(--v-temp), var(--v-rad));
+}
+.heroe-grados {
+  font-size: 3.2rem; font-weight: 700; line-height: 1; color: #fff;
+  font-family: var(--mono); letter-spacing: -0.02em;
+  text-shadow: 0 0 24px rgba(251, 113, 133, 0.35);
+}
+.heroe-unidad { font-size: 1.3rem; font-weight: 400; color: var(--cian); margin-left: 3px; }
+.heroe-info { display: flex; flex-direction: column; gap: 2px; }
+.heroe-info strong { font-size: 1.1rem; letter-spacing: 0.01em; }
+.heroe-info span { font-size: 0.8rem; color: var(--texto-suave); }
+.heroe-hora { color: var(--cian); font-family: var(--mono); font-size: 0.78rem; }
+
+.campus-pildora {
+  align-self: center;
+  background: rgba(52, 211, 153, 0.08);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  color: var(--verde);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.sin-datos {
+  background: var(--bg-tarjeta);
+  border: 1px dashed var(--borde-claro);
+  border-radius: 12px;
+  padding: 28px;
+  text-align: center;
+  color: var(--texto-suave);
+}
+
+/* ---------- Rejilla de tarjetas ---------- */
+.rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.tarjeta {
+  --acento: var(--azul);
+  background: linear-gradient(170deg, var(--bg-tarjeta) 0%, #0b1424 100%);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 15px 18px 16px;
+  box-shadow: var(--sombra);
+  transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Filete de color por variable en el borde superior */
+.tarjeta::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--acento), transparent 85%);
+  opacity: 0.9;
+}
+
+.tarjeta:hover {
+  transform: translateY(-2px);
+  border-color: var(--acento);
+  box-shadow: 0 14px 34px rgba(2, 6, 18, 0.55),
+    0 0 0 1px color-mix(in srgb, var(--acento) 35%, transparent);
+}
+
+/* Acento por variable */
+.tarjeta--temp    { --acento: var(--v-temp); }
+.tarjeta--hum     { --acento: var(--v-hum); }
+.tarjeta--viento  { --acento: var(--v-viento); }
+.tarjeta--lluvia  { --acento: var(--v-lluvia); }
+.tarjeta--presion { --acento: var(--v-presion); }
+.tarjeta--rad     { --acento: var(--v-rad); }
+.tarjeta--sens    { --acento: var(--v-sens); }
+.tarjeta--uv      { --acento: var(--v-uv); }
+.tarjeta--vis     { --acento: #93c5fd; }
+.tarjeta--pron    { --acento: #86efac; }
+
+/* Las tarjetas de Open-Meteo se distinguen: borde punteado = modelo externo */
+.tarjeta--vis, .tarjeta--pron { border-style: dashed; }
+
+/* Texto del pronostico: mas pequeno que una cifra, pero igual de claro */
+.valor-pron {
+  font-family: "Segoe UI", system-ui, sans-serif !important;
+  font-size: 1.05rem !important;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.valor-pron .js-pro-icono { font-size: 1.5rem; }
+
+/* Fichas de las proximas horas del pronostico */
+.pro-horas { display: flex; flex-wrap: wrap; gap: 6px; }
+.pro-hora {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--texto);
+  white-space: nowrap;
+}
+
+.tarjeta .etiqueta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--texto-suave);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 10px;
+}
+
+.tarjeta .etiqueta .ico {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--acento) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--acento) 35%, transparent);
+  color: var(--acento);
+  font-size: 0.95rem;
+}
+
+.tarjeta .valor {
+  font-size: 2.1rem;
+  font-weight: 600;
+  line-height: 1.1;
+  font-family: var(--mono);
+  letter-spacing: -0.02em;
+}
+
+.tarjeta .valor .unidad {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--texto-suave);
+  margin-left: 5px;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.tarjeta .pie {
+  margin-top: 9px;
+  font-size: 0.78rem;
+  color: var(--texto-suave);
+  line-height: 1.6;
+  border-top: 1px solid var(--borde);
+  padding-top: 8px;
+}
+
+/* "Registro: hace X" bajo la hora de actualizacion del heroe */
+.heroe-registro {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--texto-suave);
+}
+
+/* Las metricas derivadas destacan suavemente dentro del pie */
+.js-deriv {
+  color: var(--texto);
+  font-weight: 600;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.tarjeta.destacada .valor {
+  color: var(--v-temp);
+  text-shadow: 0 0 18px rgba(251, 113, 133, 0.3);
+}
+.tarjeta.vacio .valor { color: var(--texto-suave); font-size: 1.3rem; text-shadow: none; }
+
+/* Brujula del viento: rosa de 8 puntos con ticks, estilo instrumento */
+.brujula {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.brujula svg { flex: 0 0 auto; }
+
+.aguja { transform-origin: 40px 40px; transition: transform 0.6s ease; }
+
+.brujula .datos { font-size: 0.84rem; color: var(--texto-suave); line-height: 1.6; }
+.brujula .datos strong {
+  color: var(--texto); font-size: 1rem;
+  font-family: var(--mono);
+}
+
+/* ---------- Grafica ---------- */
+.grafica-tarjeta {
+  background: linear-gradient(170deg, var(--bg-tarjeta) 0%, #0b1424 100%);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 16px 18px;
+  box-shadow: var(--sombra);
+}
+
+.grafica-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.grafica-cabecera h3 {
+  margin: 0; font-size: 0.95rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--texto-suave);
+}
+
+.selector { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.selector button {
+  background: var(--bg-tarjeta-alta);
+  border: 1px solid var(--borde);
+  color: var(--texto-suave);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.selector button:hover { color: var(--texto); border-color: var(--c, var(--azul)); }
+.selector button.activo {
+  background: var(--c, var(--azul));
+  border-color: var(--c, var(--azul));
+  color: #04121f; font-weight: 700;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--c, var(--azul)) 35%, transparent);
+}
+.selector button:not(.activo) { border-left: 3px solid var(--c, transparent); }
+
+.lienzo-wrap {
+  position: relative; height: 300px;
+  background:
+    linear-gradient(rgba(148, 178, 220, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 178, 220, 0.035) 1px, transparent 1px);
+  background-size: 28px 28px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.lienzo-wrap canvas { width: 100%; height: 100%; }
+
+.grafica-pie {
+  margin-top: 10px;
+  font-size: 0.76rem;
+  color: var(--texto-suave);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  font-family: var(--mono);
+}
+
+.js-stats {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--borde);
+  border-left: 3px solid var(--acento-serie, var(--azul));
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-weight: 600;
+  color: var(--texto);
+}
+
+.grafica-tarjeta { --acento-serie: var(--azul); }
+
+.aviso {
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-left: 4px solid var(--ambar);
+  color: var(--ambar);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  margin-bottom: 18px;
+}
+
+/* ---------- Mapa ---------- */
+.mapa-tarjeta {
+  background: var(--bg-tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 16px 18px;
+  margin-bottom: 18px;
+  box-shadow: var(--sombra);
+}
+
+.mapa-tarjeta h3 {
+  margin: 0 0 12px; font-size: 0.95rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--texto-suave);
+}
+
+#mapa {
+  height: 340px; border-radius: 10px; z-index: 0;
+  border: 1px solid var(--borde);
+}
+
+/* Selector de capas base (Leaflet) adaptado al tema */
+.leaflet-control-layers {
+  background: var(--bg-tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  color: var(--texto);
+  font-size: 0.8rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+.leaflet-control-layers label { color: var(--texto); }
+.leaflet-control-layers-separator { border-top-color: var(--borde); }
+
+.mapa-leyenda {
+  margin-top: 10px;
+  font-size: 0.76rem;
+  color: var(--texto-suave);
+  line-height: 1.6;
+}
+
+/* Marcador del mapa (Leaflet) */
+.marcador {
+  background: var(--bg-tarjeta-alta);
+  border: 1px solid var(--cian);
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: var(--texto);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(34, 211, 238, 0.25);
+}
+
+.marcador strong { color: var(--cian); font-family: var(--mono); }
+
+/* ---------- Historial y estadisticas ---------- */
+.historial-tarjeta {
+  background: linear-gradient(170deg, var(--bg-tarjeta) 0%, #0b1424 100%);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 16px 18px;
+  box-shadow: var(--sombra);
+}
+
+.historial-tarjeta .grafica-cabecera { align-items: center; }
+
+.historial-selectores {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+}
+
+.historial-selectores select {
+  background: var(--bg-tarjeta-alta);
+  border: 1px solid var(--borde);
+  color: var(--texto);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  font-family: var(--mono);
+  cursor: pointer;
+}
+.historial-selectores select:focus { outline: 1px solid var(--cian); }
+.historial-selectores select:disabled { opacity: 0.45; cursor: not-allowed; }
+.historial-selectores select option { background: var(--bg-tarjeta); }
+
+.historial-boton {
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  color: var(--cian);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.historial-boton:hover:not(:disabled) { background: rgba(34, 211, 238, 0.18); }
+.historial-boton:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Migas de navegacion del drill-down */
+.historial-migas {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 12px;
+}
+.historial-miga {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--borde);
+  color: var(--texto);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  font-family: var(--mono);
+  cursor: pointer;
+}
+.historial-miga:hover { border-color: var(--cian); color: var(--cian); }
+.historial-miga.activa {
+  background: rgba(34, 211, 238, 0.15);
+  border-color: rgba(34, 211, 238, 0.5);
+  color: var(--cian);
+  cursor: default;
+}
+.historial-miga-sep { color: var(--texto-suave); font-size: 0.8rem; }
+
+/* Chips del resumen del periodo */
+.historial-resumen {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px;
+}
+.hist-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.76rem;
+  color: var(--texto-suave);
+}
+.hist-chip strong {
+  color: var(--texto); font-family: var(--mono); font-weight: 600;
+}
+.hist-chip.c-frio strong { color: var(--azul); }
+.hist-chip.c-calor strong { color: var(--v-temp); }
+
+/* Tabla de estadisticas / datos crudos */
+.historial-tabla-wrap {
+  overflow: auto;
+  max-height: 420px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: rgba(2, 6, 18, 0.25);
+}
+.historial-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.historial-tabla th {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--bg-tarjeta-alta);
+  color: var(--texto-suave);
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  text-align: right;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--borde-claro);
+  white-space: nowrap;
+}
+.historial-tabla th:first-child, .historial-tabla td:first-child { text-align: left; }
+.historial-tabla td {
+  padding: 6px 10px;
+  text-align: right;
+  border-bottom: 1px solid rgba(34, 52, 79, 0.5);
+  white-space: nowrap;
+  color: var(--texto);
+}
+.historial-tabla tbody tr:hover { background: rgba(34, 211, 238, 0.05); }
+.c-hora { color: var(--cian); font-weight: 600; }
+.c-frio { color: var(--azul); }
+.c-calor { color: var(--v-temp); }
+
+.historial-cargando {
+  margin: 0; padding: 18px;
+  text-align: center; color: var(--texto-suave); font-size: 0.85rem;
+}
+
+.historial-pie {
+  margin-top: 10px;
+  font-size: 0.76rem;
+  color: var(--texto-suave);
+}
+
+/* Grafica del periodo historico */
+.historial-grafica { margin: 14px 0; }
+
+.historial-grafica .grafica-cabecera h3 {
+  color: var(--texto);
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+.hist-lienzo-wrap { height: 280px; margin-bottom: 10px; }
+
+.historial-leyenda {
+  display: flex; flex-wrap: wrap; gap: 14px;
+  font-size: 0.76rem; color: var(--texto-suave);
+  margin-bottom: 14px;
+}
+.hist-leyenda-item {
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.hist-leyenda-item i {
+  display: inline-block; width: 10px; height: 10px;
+  border-radius: 2px;
+}
+
+/* ---------- Pie ---------- */
+.pie-pagina {
+  border-top: 1px solid var(--borde);
+  margin-top: 28px;
+  padding-top: 20px;
+  color: var(--texto-suave);
+  font-size: 0.8rem;
+  line-height: 1.7;
+}
+
+/* Pie organizado en columnas: estaciones / variables / API */
+.pie-columnas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 22px;
+}
+
+.pie-col h4 {
+  margin: 0 0 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--cian);
+}
+
+.pie-legal {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--borde);
+  font-size: 0.72rem;
+  color: #64789a;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+
+.pie-pagina code {
+  background: var(--bg-tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.76rem;
+  font-family: var(--mono);
+  color: var(--cian);
+}
+
+@media (max-width: 900px) {
+  .barra { display: none; }
+  .principal { width: 100%; }
+}
+
+@media (max-width: 640px) {
+  .tarjeta .valor { font-size: 1.6rem; }
+  .lienzo-wrap { height: 240px; }
+  .heroe-grados { font-size: 2.2rem; }
+  .contenedor { padding: 16px 12px 40px; }
+}
+
+/* Reduced motion: sin pulso ni fundidos largos */
+@media (prefers-reduced-motion: reduce) {
+  .punto.vivo { animation: none; }
+  .fondo-capa { transition: none; }
+  * { scroll-behavior: auto !important; }
+}

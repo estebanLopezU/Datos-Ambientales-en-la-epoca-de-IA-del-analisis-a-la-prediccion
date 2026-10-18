@@ -1,0 +1,16 @@
+# Dependencias del proyecto Est Campus Unal
+# Entorno virtual: C:\Users\esteb\entornos_venv\est_campus
+# Instalar con:  python -m pip install -r requirements.txt
+#
+# El entorno virtual vive FUERA de OneDrive a proposito: un venv son miles de
+# archivos pequenos y OneDrive los sincroniza (y puede corromperlos).
+
+Django==6.1.2
+
+# Dependencias de Django (fijadas para instalaciones reproducibles)
+asgiref==3.12.1
+sqlparse==0.6.0
+tzdata==2026.5
+
+# Servidor estatico para el deploy en Vercel (sin runserver alla)
+whitenoise==6.12.0

@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ambient en vivo - experimentoUN</title>
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/ambient_cielo.css' %}">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:#0b1526;color:#e8eef7;font-variant-numeric:tabular-nums}
+.con{max-width:1180px;margin:0 auto;padding:14px 14px 60px}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
+.top h1{font-size:1.1rem;margin:0;color:#cbd5e1}
+.reloj{font-size:1.2rem;font-weight:700}
+.badge{font-weight:800;padding:6px 14px;border-radius:999px;font-size:.8rem}
+.badge.on{background:#14532d;color:#bbf7d0}
+.badge.off{background:#7f1d1d;color:#fecaca}
+.btn-recargar{background:#3b82f6;color:#fff;border:none;padding:4px 12px;border-radius:999px;font-size:.75rem;cursor:pointer;transition:background .2s}
+.btn-recargar:hover{background:#2563eb}
+.nav a{color:#7dd3fc;text-decoration:none;font-size:.85rem}
+.pantalla{background:linear-gradient(180deg,#131f36,#0b1526);border:1px solid #22344f;border-radius:18px;padding:18px;margin-top:12px}
+.fila1{display:grid;grid-template-columns:1.1fr 1.1fr .9fr .9fr;gap:14px;align-items:center}
+.anillo{position:relative;width:190px;height:190px;margin:0 auto}
+.anillo svg{transform:rotate(-90deg)}
+.centro{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.maxmin{font-size:.8rem;color:#fbbf24}
+.grande{font-size:3rem;font-weight:800;line-height:1}
+.sub{font-size:.8rem;color:#94a3b8}
+.sub3{display:flex;gap:14px;justify-content:center;font-size:.85rem;color:#cbd5e1;margin-top:6px;text-align:center}
+.sub3 b{color:#fff}
+.etq{text-align:center;color:#94a3b8;margin-top:6px;font-size:.85rem}
+.mini{text-align:center}
+.rueda{width:120px;height:120px;margin:0 auto;border-radius:50%;border:10px solid #1e293b;display:flex;align-items:center;justify-content:center;font-size:1.35rem;font-weight:800}
+.fila2{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:14px;margin-top:16px;align-items:start}
+.lluvia{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
+.gota{font-size:2.4rem}
+.lluvia .num{font-size:2.4rem;font-weight:800}
+.lluvia table{font-size:.8rem;color:#cbd5e1;border-collapse:collapse}
+.lluvia td{padding:2px 8px;text-align:right}
+.lluvia td:first-child{color:#94a3b8;text-align:left}
+.arco{width:100%;max-width:420px;height:160px;margin:0 auto;display:block}
+.uvrad{display:flex;gap:18px;justify-content:center;align-items:center;margin-top:6px;font-size:1rem;flex-wrap:wrap}
+.uvrad b{font-size:1.5rem}
+.baro{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:12px;font-size:.85rem;color:#cbd5e1;flex-wrap:wrap;text-align:center}
+.vivo{font-size:.8rem;color:#34d399;margin-top:10px;text-align:center}
+/* Tarjetas estilo Ecowitt (oscuro). .fila1/.fila2 se vuelven invisibles
+   para no romper viva()/graf(): solo cambia el layout. */
+.pantalla.tarjetas{display:flex;flex-wrap:wrap;gap:12px;background:none;border:none;padding:0;box-shadow:none}
+.pantalla.tarjetas .card.fc{flex:1 1 100%}
+.pantalla.tarjetas .card{flex:1 1 260px;min-height:200px}
+@media(max-width:700px){.pantalla.tarjetas .card.fc{flex:1 1 100%}}
+.card{background:linear-gradient(180deg,rgba(19,31,54,.96),rgba(11,21,38,.96));border:1px solid #22344f;border-radius:14px;padding:14px;min-width:0}
+.card-h{display:flex;align-items:center;gap:8px;color:#94a3b8;font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+.card-h .ico{width:26px;height:26px;border-radius:50%;background:#1d4ed8;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:.9rem}
+.card .big{font-size:2.2rem;font-weight:800;line-height:1;text-align:center}
+.card .unit{font-size:.95rem;color:#94a3b8;font-weight:600}
+.card .row3{display:flex;justify-content:center;gap:18px;font-size:.8rem;color:#94a3b8;margin-top:8px;text-align:center}
+.card .row3 b{display:block;color:#fff;font-size:.95rem}
+.card .foot{font-size:.8rem;color:#94a3b8;text-align:center;margin-top:8px}
+.card .foot b{color:#7dd3fc}
+.fc-horas{display:flex;gap:6px;overflow-x:auto;padding:4px 0;text-align:center}
+.fc-horas .h{min-width:52px;font-size:.75rem;color:#cbd5e1}
+.fc-horas .h b{display:block;color:#fff}
+.fc-dias{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;margin-top:8px}
+.fc-dias .d{background:rgba(15,23,42,.6);border:1px solid rgba(148,163,184,.2);border-radius:10px;padding:8px 4px;font-size:.72rem}
+.fc-dias .d b{display:block;font-size:.85rem;color:#fff;white-space:nowrap}
+.fc-dias .tmax{color:#fbbf24;font-weight:800}
+.fc-dias .tmin{color:#7dd3fc}
+.fc-hoy{display:flex;align-items:center;justify-content:center;gap:14px;margin:4px 0 8px}
+.fc-hoy .sol{font-size:2.2rem}
+.fc-hoy .tt{font-size:1.6rem;font-weight:800;color:#7dd3fc}
+.fc-hoy .tt small{font-size:1rem;color:#94a3b8}
+.tubos{display:flex;gap:14px;justify-content:center;align-items:flex-end;margin-top:6px}
+.tubo{width:44px;text-align:center}
+.tubo .vaso{height:90px;border:1px solid #334155;border-radius:8px 8px 10px 10px;position:relative;overflow:hidden;background:rgba(15,23,42,.7)}
+.tubo .agua{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(180deg,#38bdf8,#0369a1)}
+.tubo b{display:block;margin-top:4px;font-size:.8rem}
+.gauge{width:150px;margin:0 auto;display:block}
+.uvbar{height:8px;border-radius:99px;background:linear-gradient(90deg,#22c55e,#eab308 40%,#f97316 65%,#ef4444 85%,#a855f7);margin:10px 4px 4px;position:relative}
+.uvbar .pin{position:absolute;top:-4px;width:4px;height:16px;background:#fff;border-radius:2px}
+.indoor-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center}
+.indoor-grid .ib{background:rgba(15,23,42,.6);border-radius:10px;padding:8px}
+.indoor-grid .ib span{font-size:.72rem;color:#94a3b8}
+.indoor-grid .ib b{display:block;font-size:1.15rem}
+.pantalla.tarjetas{background:none;border:none;padding:0;box-shadow:none}
+.pantalla.tarjetas .fila1,.pantalla.tarjetas .fila2{display:contents}
+.pantalla.tarjetas .ayuda{display:none}
+.pantalla.tarjetas .bajo{width:100%;margin-top:14px}
+body[data-escena="lluvia"] .card,body[data-escena="frio"] .card,body[data-escena="calor"] .card{border-color:#334155}
+.tabla{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:14px}
+.tabla th,.tabla td{padding:6px 8px;border-bottom:1px solid rgba(148,163,184,.2);text-align:right}
+.tabla th:first-child,.tabla td:first-child{text-align:left}
+.seccion-inferior{width:100%;margin-top:14px}
+.grafico-container{width:100%;background:rgba(15,23,42,.6);border:1px solid #22344f;border-radius:14px;margin-top:8px;overflow:hidden;padding:10px}
+/* Grilla de todas las estadisticas graficadas (una tarjeta por sensor). */
+.graf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.graf-tile{background:rgba(15,23,42,.7);border:1px solid rgba(148,163,184,.18);border-radius:12px;padding:10px 12px 8px;min-width:0;transition:border-color .3s,box-shadow .3s;scroll-margin:20px}
+.graf-tile.focus{border-color:#38bdf8;box-shadow:0 0 0 1px rgba(56,189,248,.7),0 0 18px rgba(56,189,248,.35)}
+.gt-h{display:flex;align-items:center;gap:7px;font-size:.78rem;color:#cbd5e1;font-weight:700;min-width:0}
+.gt-h .punto{width:9px;height:9px;border-radius:50%;flex:none}
+.gt-h small{color:#64748b;font-weight:600}
+.gt-h .actual{margin-left:auto;color:#fff;font-size:.92rem;font-weight:800;white-space:nowrap}
+.graf-tile canvas{display:block;width:100%;height:118px;margin-top:6px}
+.gt-f{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap;font-size:.7rem;color:#94a3b8;margin-top:6px}
+.gt-f b{color:#cbd5e1;font-weight:700}
+@media(max-width:900px){.graf-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.graf-grid{grid-template-columns:1fr}}
+/* Carrusel de estadisticas del dia: slides de ancho completo + dots. */
+.stats-section{width:100%;margin-top:16px}
+.stats-section h3{color:#94a3b8;margin:0 0 6px}
+.stats-wrap{display:flex;align-items:center;gap:10px;margin-top:10px}
+.stats-carousel{position:relative;flex:1 1 auto;min-width:0;overflow:hidden;border:1px solid #22344f;border-radius:14px;background:rgba(19,31,54,.6);touch-action:pan-y}
+.stats-track{display:flex;transition:transform .5s cubic-bezier(.22,.61,.36,1);will-change:transform}
+.stats-card{flex:0 0 100%;width:100%;min-width:100%;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;transition:background .2s;user-select:none}
+.stats-card:hover{background:rgba(29,78,216,.15);cursor:pointer}
+.stats-title{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-weight:800;color:#7dd3fc;margin-bottom:10px;font-size:1.1rem;border-bottom:1px solid #22344f;padding-bottom:6px}
+.stats-title small{color:#64748b;font-weight:600;font-size:.78rem}
+.stats-title .stats-ver{margin-left:auto;font-size:.72rem;color:#7dd3fc;font-weight:600;opacity:.85}
+.stats-body{display:flex;gap:16px;align-items:center;min-width:0}
+.stats-table{width:46%;border-collapse:collapse;font-size:.9rem;flex:none}
+.stats-table th{text-align:left;color:#94a3b8;width:52%}
+.stats-table td{color:#fff;padding:7px 0;border-bottom:1px solid rgba(148,163,184,.15);text-align:right}
+.spark{flex:1 1 auto;min-width:0;height:96px;display:block}
+.stats-nav{flex:none;background:#1d4ed8;border:none;color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:1.2rem;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.45);transition:background .2s,transform .2s}
+.stats-nav:hover{background:#38bdf8;transform:scale(1.08)}
+.stats-nav:active{transform:scale(.94)}
+.stats-count{font-size:.72rem;color:#94a3b8;background:rgba(15,23,42,.75);border:1px solid rgba(148,163,184,.25);border-radius:99px;padding:2px 9px;margin-left:4px}
+.stats-dots{display:flex;gap:8px;justify-content:center;align-items:center;padding:2px 0 12px}
+.stats-dots .d{width:9px;height:9px;padding:0;border:none;border-radius:99px;background:#334155;cursor:pointer;transition:background .25s,width .25s}
+.stats-dots .d:hover{background:#64748b}
+.stats-dots .d.on{background:#38bdf8;width:24px}
+@media(max-width:600px){.stats-body{flex-direction:column;align-items:stretch}.stats-table{width:100%}.spark{height:80px}}
+.ayuda{background:rgba(30,41,59,.85);border:1px dashed rgba(148,163,184,.4);border-radius:12px;padding:14px;margin:18px 0}
+.ayuda code{background:#0f172a;padding:2px 6px;border-radius:6px}
+@media(max-width:900px){.fila1{grid-template-columns:1fr 1fr}.fila2{grid-template-columns:1fr}}
+</style>
+</head>
+
+<body data-escena="{{ escena|default:'standby' }}" data-momento="{{ momento|default:'dia' }}">
+<canvas id="cielo" aria-hidden="true"></canvas>
+<div class="con">
+<div class="top">
+<div class="nav"><a href="/ambient/">&larr; Dispositivos</a> · <a href="/">Dashboard UNAL</a></div>
+<h1>Ambient en vivo · {% if device_id %}{{ device_id }}{% else %}experimentoUN · 99{% endif %}</h1>
+<span id="chip-clima"><span class="dot"></span><span>Cielo vivo</span></span>
+<div class="reloj" id="reloj">—</div>
+{% if ultima %}{% if en_linea %}
+<span class="badge on" id="estado">EN LINEA</span>
+{% else %}<span class="badge off" id="estado">SIN DATOS RECIENTES</span>{% endif %}
+{% else %}<span class="badge off" id="estado">SIN DATOS</span>{% endif %}
+<button id="recargar" class="btn-recargar">🔄 Recargar estado</button>
+</div>
+{% if consola %}
+<div class="pantalla tarjetas">
+<div class="card fc">
+<div class="card-h"><span class="ico">F</span><span>Forecast - Manizales (Open-Meteo)</span></div>
+<div class="fc-hoy"><span class="sol" id="fc-emoji">--</span> <span class="tt"><span id="fc-tmax">--</span> <small>/ <span id="fc-tmin">--</span></small></span> <span style="font-size:.8rem;color:#94a3b8">Today</span></div>
+<div class="fc-horas" id="fc-horas"></div>
+<div class="fc-dias" id="fc-dias"></div>
+<div class="foot" id="fc-msg" style="display:none">Sin pronostico (sin internet). Sensores locales en vivo.</div>
+</div>
+<div class="fila1">
+<div class="card">
+<div class="card-h"><span class="ico">O</span><span>Outdoor</span></div>
+<div class="anillo">
+<svg width="190" height="190" viewBox="0 0 190 190">
+<circle cx="95" cy="95" r="80" fill="none" stroke="#1e293b" stroke-width="14"/>
+<circle id="a-temp" cx="95" cy="95" r="80" fill="none" stroke="#fbbf24" stroke-width="14" stroke-linecap="round" stroke-dasharray="502" stroke-dashoffset="150"/>
+</svg>
+<div class="centro">
+<div class="maxmin">↑ <span id="tmax">{{ consola.tmax_hoy|default:"—" }}</span>°</div>
+<div class="grande"><span id="v-temp">{{ consola.temperatura|default:"—" }}</span><span style="font-size:1.2rem">°</span></div>
+<div class="maxmin">↓ <span id="tmin">{{ consola.tmin_hoy|default:"—" }}</span>°</div>
+</div>
+</div>
+<div class="sub3">
+<span>Ayer<br><b>{% if consola.ayer_temp != None %}{{ consola.ayer_temp }}{% else %}--{% endif %}</b></span>
+<span>FeelsLike<br><b id="v-sens">{{ consola.sensacion|default:"—" }}°</b></span>
+<span>DewPoint<br><b id="v-rocio">{{ consola.rocio|default:"—" }}°</b></span>
+<span>Humidity<br><b id="v-hr">{{ consola.humedad|default:"—" }} %</b></span>
+</div>
+</div>
+<div class="card">
+<div class="card-h"><span class="ico">W</span><span>Wind</span></div>
+<div class="anillo">
+<svg width="190" height="190" viewBox="0 0 190 190">
+<circle cx="95" cy="95" r="80" fill="none" stroke="#1e293b" stroke-width="14"/>
+<circle id="a-viento" cx="95" cy="95" r="80" fill="none" stroke="#38bdf8" stroke-width="14" stroke-linecap="round" stroke-dasharray="502" stroke-dashoffset="300"/>
+<g id="flecha-viento" style="transform-origin:95px 95px">
+<polygon points="95,18 88,34 102,34" fill="#e2e8f0"/>
+</g>
+</svg>
+<div class="centro">
+<div class="sub" id="v-rumbo">{{ consola.rumbo|default:"—" }} {{ consola.direccion|default:"—" }}°</div>
+<div class="grande"><span id="v-viento">{{ consola.viento_kmh|default:"—" }}</span></div>
+<div class="sub">Gust <b id="v-racha">{{ consola.racha_kmh|default:"—" }}</b><br>km/h</div>
+</div>
+</div>
+<div class="sub3">
+<span>10MinAvg<br><b id="v-prom10">{{ consola.prom10m|default:"—" }}</b></span>
+<span>MaxDailyGust<br><b id="v-picoracha">{{ consola.racha_pico_hoy|default:"—" }}</b></span>
+</div>
+</div>
+<div class="card">
+<div class="card-h"><span class="ico">I</span><span>Indoor</span></div>
+<div class="mini">
+<div class="rueda" style="border-color:#38bdf8"><span id="v-tin">{{ consola.temp_interior|default:"––" }}</span>°</div>
+<div class="etq">Temperature<br><b>Indoor</b></div>
+</div>
+<div class="mini">
+<div class="rueda" style="border-color:#64748b"><span id="v-hin">{{ consola.hum_interior|default:"–" }}</span> %</div>
+<div class="etq">Humidity<br>Rocio <b id="v-dewi">{% if consola.rocio_in != None %}{{ consola.rocio_in }}{% else %}--{% endif %}</b> - Sens <b id="v-feeli">{% if consola.sens_in != None %}{{ consola.sens_in }}{% else %}--{% endif %}</b></div>
+</div>
+</div>
+</div>
+<div class="fila2">
+<div class="card">
+<div class="card-h"><span class="ico">S</span><span>Solar Radiation</span></div>
+<svg class="arco" id="arco-sol" viewBox="0 0 420 165" aria-label="Recorrido solar">
+<path id="pista-sol" d="M25,135 Q210,-15 395,135" fill="none" stroke="rgba(226,232,240,.75)" stroke-width="2" stroke-dasharray="7 7"/>
+<circle id="p-sol" cx="210" cy="45" r="10" fill="#fbbf24" style="filter:drop-shadow(0 0 8px rgba(251,191,36,.9))"/>
+<text id="luna-sol" font-size="22" text-anchor="middle" style="display:none">🌙</text>
+<text x="25" y="152" fill="#e2e8f0" font-size="16" font-weight="700" id="t-amanecer">{% if amanecer %}{{ amanecer|date:"H:i" }}{% else %}05:42{% endif %}</text>
+<text x="395" y="152" fill="#e2e8f0" font-size="16" font-weight="700" text-anchor="end" id="t-atardecer">{% if atardecer %}{{ atardecer|date:"H:i" }}{% else %}17:55{% endif %}</text>
+<text x="25" y="122" fill="#94a3b8" font-size="12">S</text>
+<text x="390" y="122" fill="#94a3b8" font-size="12">M</text>
+</svg>
+<div class="uvrad">
+<span><b id="v-rad">{{ consola.radiacion|default:"—" }}</b> w/m2</span>
+<span><b id="v-uv">{{ consola.uv|default:"—" }}</b> UV <b id="v-uvr">{{ consola.uv_riesgo|default:"" }}</b></span>
+<span>Pico hoy <b>{% if consola.pico_rad_hoy != None %}{{ consola.pico_rad_hoy }}{% else %}--{% endif %}</b> W/m2</span>
+</div>
+</div>
+<div class="card">
+<div class="card-h"><span class="ico">R</span><span>Rainfall</span></div>
+<div class="lluvia">
+<div class="gota">D</div>
+<div><div class="num"><span id="v-lld">{{ consola.lluvia_dia|default:"—" }}</span><span style="font-size:1rem"> mm</span></div><div class="etq">Daily Rain</div></div>
+<table>
+<tr><td>Rate</td><td><span id="v-llt">{{ consola.lluvia_tasa|default:"—" }}</span> mm/h</td><td>Event</td><td><span id="v-lle">{{ consola.lluvia_evento|default:"—" }}</span> mm</td></tr>
+<tr><td>Hourly</td><td><span id="v-llh">{{ consola.lluvia_hora|default:"—" }}</span> mm</td><td>Weekly</td><td><span id="v-lls">{{ consola.lluvia_semana|default:"—" }}</span> mm</td></tr>
+<tr><td>Monthly</td><td><span id="v-llm">{{ consola.lluvia_mes|default:"—" }}</span> mm</td><td>Yearly</td><td><span id="v-lla">{{ consola.lluvia_anio|default:"—" }}</span> mm</td></tr>
+</table>
+</div>
+</div>
+<div class="card">
+<div class="card-h"><span class="ico">P</span><span>Pressure</span></div>
+<div class="baro">
+<span>Barometer REL <b id="v-pre">{{ consola.presion|default:"—" }}</b> hPa</span>
+<span>ABS <b id="v-pabs">{{ consola.presion_abs|default:"—" }}</b> hPa</span>
+</div>
+</div>
+</div>
+</div>
+<div class="seccion-inferior">
+<div class="vivo" id="vivo-linea">Ultimo: {{ ultima_hora|date:"Y-m-d H:i:s" }} · cada 15 s</div>
+<div class="grafico-container">
+<div id="graf-grid" class="graf-grid"></div>
+</div>
+<h3 style="color:#94a3b8">Ultimos reportes</h3>
+<table class="tabla">
+<tr><th>Hora</th><th>Temp</th><th>HR</th><th>Pres</th><th>Viento</th><th>Dir</th><th>Rad</th><th>Lluvia</th></tr>
+{% for r in recientes %}
+<tr><td>{{ r.timestamp|date:"m-d H:i:s" }}</td><td>{{ r.temperatura|default:"—" }}</td><td>{{ r.humedad_relativa|default:"—" }}</td><td>{{ r.presion_barometrica|default:"—" }}</td><td>{{ r.velocidad_viento|default:"—" }}</td><td>{{ r.direccion_viento|default:"—" }}</td><td>{{ r.radiacion_solar|default:"—" }}</td><td>{{ r.precipitacion|default:"—" }}</td></tr>
+{% endfor %}
+</table>
+<div class="stats-section">
+  <h3>Estadísticas del día</h3>
+  <div class="stats-wrap">
+    <button class="stats-nav prev" type="button" aria-label="Estadística anterior">&#10094;</button>
+    <div class="stats-carousel">
+    <div class="stats-track">
+    {% for nombre, s in stats.items %}
+    <div class="stats-card" data-sensor="{{ nombre }}">
+      <div class="stats-title"><span>{{ s.nom|default:nombre }}</span>{% if s.unidad %}<small>{{ s.unidad }}</small>{% endif %}<span class="stats-ver">Ver gráfico →</span></div>
+      <div class="stats-body">
+        <table class="stats-table">
+          {% if nombre == "precipitacion" %}
+          <tr><th>Total día (mm)</th><td>{{ s.total|default_if_none:"--" }}</td></tr>
+          <tr><th>Máx tasa (mm/h)</th><td>{{ s.max_rate|default_if_none:"--" }}</td></tr>
+          {% elif nombre == "direccion_viento" %}
+          <tr><th>Dirección dom. (°)</th><td>{{ s.dominante|default_if_none:"--" }}</td></tr>
+          {% else %}
+          <tr><th>Máx</th><td>{{ s.max|default_if_none:"--" }}</td></tr>
+          <tr><th>Mín</th><td>{{ s.min|default_if_none:"--" }}</td></tr>
+          <tr><th>Prom</th><td>{{ s.avg|default_if_none:"--" }}</td></tr>
+          {% endif %}
+        </table>
+        <canvas class="spark" data-sensor="{{ nombre }}"></canvas>
+      </div>
+    </div>
+    {% endfor %}
+    </div>
+    <span class="stats-count"></span>
+    </div>
+    <button class="stats-nav next" type="button" aria-label="Estadística siguiente">&#10095;</button>
+  </div>
+</div>
+</div>
+{% else %}
+<div class="ayuda"><strong>Aun no hay datos del Ambient.</strong><br>
+IP <code>192.168.137.1</code> puerto <code>5000</code> path <code>/weatherstation/updateweatherstation.php</code></div>
+{% endif %}
+<div class="ayuda"><strong>Endpoints:</strong> <code>GET /api/v1/ambient/ultima/</code> · <code>GET /api/v1/ambient/serie/</code></div>
+</div>
+{{ series|json_script:"series-data" }}
+<script>
+(function(){
+function reloj(){
+var el=document.getElementById('reloj');
+if(!el) return;
+var n=new Date();
+var dias=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var mon=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function p2(x){return ('0'+x).slice(-2);}
+el.textContent=dias[n.getDay()]+', '+p2(n.getDate())+' '+mon[n.getMonth()]+' '+n.getFullYear()+' '+p2(n.getHours())+':'+p2(n.getMinutes())+':'+p2(n.getSeconds());
+}
+reloj();setInterval(reloj,1000);
+var RUMBOS=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+function rumbo(g){ if(g==null) return '-'; return RUMBOS[Math.round((g%360)/22.5)%16]; }
+function set(id,v,dec){ var e=document.getElementById(id); if(!e) return; if(v==null){e.textContent='-';return;} var decs=(dec==null?1:dec); e.textContent=Number(v).toFixed(decs)+(decs>0?'':''); }
+function setHum(id,v){ var e=document.getElementById(id); if(!e) return; e.textContent=(v==null?'-':Math.round(Number(v))+(id==='v-hr'?' %':'')); }
+async function viva(){
+try{
+var r=await fetch('/api/v1/ambient/ultima/');
+var j=await r.json();
+if(!j.disponible) return;
+// Refresco total: cada 15 s se actualiza TODO (no solo una parte).
+set('v-temp',j.temperatura,1); setHum('v-hr',j.humedad_relativa);
+set('v-sens',j.sensacion,1); set('v-rocio',j.rocio,1);
+set('v-tin',j.temperatura_interior,1); set('v-hin',j.humedad_interior,0);
+var kmh=j.velocidad_viento!=null?j.velocidad_viento*3.6:null;
+var rkmh=j.racha_viento!=null?j.racha_viento*3.6:null;
+var p10=j.viento_promedio_10m!=null?j.viento_promedio_10m*3.6:null;
+function hm(txt){try{var p=String(txt).trim().split(':');return (+p[0])*60+(+p[1]);}catch(e){return null;}}
+function moverAstro(){
+  try{
+    var ta=document.getElementById('t-amanecer'),tt=document.getElementById('t-atardecer');
+    var sol=document.getElementById('p-sol'),lun=document.getElementById('luna-sol');
+    if(!ta||!tt||!sol||!lun) return;
+    var a=hm(ta.textContent),b=hm(tt.textContent);
+    if(a==null||b==null||isNaN(a)||isNaN(b)) return;
+    var n=new Date();
+    var bog=new Date(n.toLocaleString('en-US',{timeZone:'America/Bogota'}));
+    var ahora=bog.getHours()*60+bog.getMinutes();
+    var esDia=ahora>=a&&ahora<=b, frac;
+    if(esDia) frac=(ahora-a)/Math.max(1,(b-a));
+    else{var noc=(1440-b+a)%1440||1;var desde=ahora>=b?(ahora-b):(ahora+1440-b);frac=desde/noc;}
+    frac=Math.max(0,Math.min(1,frac));
+    var x=25+370*frac, y=135*(1-frac)*(1-frac)+2*(-15)*frac*(1-frac)+135*frac*frac;
+    if(esDia){sol.setAttribute('cx',x.toFixed(1));sol.setAttribute('cy',y.toFixed(1));sol.style.display='';lun.style.display='none';}
+    else{sol.style.display='none';lun.setAttribute('x',x.toFixed(1));lun.setAttribute('y',(y-2).toFixed(1));lun.style.display='';}
+  }catch(e){}
+}
+moverAstro();setInterval(moverAstro,60000);
+set('v-viento',kmh,1); set('v-racha',rkmh,1);
+set('v-prom10',p10,1);
+var rb=document.getElementById('v-rumbo');
+if(rb) rb.textContent=rumbo(j.direccion_viento)+' '+(j.direccion_viento==null?'-':j.direccion_viento)+' deg';
+var fl=document.getElementById('flecha-viento');
+if(fl&&j.direccion_viento!=null) fl.style.transform='rotate('+(j.direccion_viento+180)+'deg)';
+var av=document.getElementById('a-viento');
+if(av&&kmh!=null) av.style.strokeDashoffset=502-502*Math.min(kmh/60,1);
+var at=document.getElementById('a-temp');
+if(at&&j.temperatura!=null) at.style.strokeDashoffset=502-502*Math.min(Math.max((j.temperatura+10)/60,0),1);
+set('v-rad',j.radiacion_solar,1); set('v-uv',j.indice_uv,0);
+set('v-lld',j.lluvia_dia,1); set('v-llt',j.lluvia_tasa,1);
+set('v-lle',j.lluvia_evento,1); set('v-llh',j.lluvia_hora,1);
+set('v-lls',j.lluvia_semana,1); set('v-llm',j.lluvia_mes,1); set('v-lla',j.lluvia_anio,1);
+set('v-pre',j.presion_barometrica,1); set('v-pabs',j.presion_absoluta,1);
+// La tabla "Ultimos reportes" es estatica del servidor: se recarga la
+// pagina cuando entra un dato mas nuevo (asi todo queda sincronizado).
+var vl=document.getElementById('vivo-linea');
+if(vl&&j.timestamp) vl.textContent='Ultimo: '+j.timestamp+' - cada 15 s';
+// El badge de estado tambien se refresca solo: el servidor envia la edad
+// de la lectura (hace_seg) y el umbral en minutos, asi el veredicto no
+// depende del reloj del visitante.
+var eb=document.getElementById('estado');
+if(eb&&j.hace_seg!=null){
+  var umb=(j.umbral_offline_min!=null?j.umbral_offline_min:10)*60;
+  var enLin=j.hace_seg<=umb;
+  eb.className='badge '+(enLin?'on':'off');
+  eb.textContent=enLin?'EN LINEA':'SIN DATOS RECIENTES';
+}
+// Botón manual: fuerza la actualización de la fecha y el badge.
+document.getElementById('recargar').addEventListener('click', function(){
+  fetch('/api/v1/ambient/ultima/').then(function(r){return r.json();}).then(function(j){
+    if(j.ok&&j.hace_seg!=null){
+      var umb=(j.umbral_offline_min!=null?j.umbral_offline_min:10)*60;
+      var enLin=j.hace_seg<=umb;
+      var eb=document.getElementById('estado');
+      if(eb){
+        eb.className='badge '+(enLin?'on':'off');
+        eb.textContent=enLin?'EN LINEA':'SIN DATOS RECIENTES';
+      }
+    }
+  }).catch(function(){});
+});
+// No recargar la pagina al llegar un dato nuevo: romperia el carrusel de estadisticas.
+window.__ultTs=j.timestamp||window.__ultTs;
+}catch(e){}
+}
+// ---------- Graficas: todas las estadisticas del dia ----------
+var GRAF_CFG=[
+ {k:'temperatura',nom:'Temperatura',u:'°C',c:'#fbbf24',dec:1},
+ {k:'humedad_relativa',nom:'Humedad relativa',u:'%',c:'#38bdf8',dec:0},
+ {k:'presion_barometrica',nom:'Presión barométrica',u:'hPa',c:'#a78bfa',dec:1},
+ {k:'velocidad_viento',nom:'Viento',u:'m/s',c:'#34d399',dec:1,
+  extra:{k:'racha_viento',c:'rgba(52,211,153,.55)',nom:'racha'}},
+ {k:'radiacion_solar',nom:'Radiación solar',u:'W/m²',c:'#fb7185',dec:0},
+ {k:'precipitacion',nom:'Lluvia',u:'mm/h',c:'#22d3ee',dec:2,area:true,acum:'lluvia_dia'}
+];
+var CAMPOS_SERIE=['temperatura','humedad_relativa','presion_barometrica','presion_absoluta',
+ 'velocidad_viento','direccion_viento','racha_viento','viento_promedio_10m','radiacion_solar',
+ 'indice_uv','temperatura_interior','humedad_interior','precipitacion','lluvia_tasa',
+ 'lluvia_dia','lluvia_hora'];
+function serieDe(k){var s=(window.__series||{})[k]||[];return s.filter(function(p){return p&&p[1]!=null&&!isNaN(+p[1]);});}
+function ultimoValor(k){var pts=serieDe(k);if(!pts.length)return null;var b=pts[0];
+ pts.forEach(function(p){if(+new Date(p[0])>+new Date(b[0]))b=p;});return b[1];}
+function conAlpha(hex,a){if(hex.charAt(0)!=='#')return hex;var n=parseInt(hex.slice(1),16);
+ return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}
+function fmt(v,dec){return(v==null||isNaN(v))?'--':Number(v).toFixed(dec);}
+function prepararLienzo(cv){
+ var dpr=window.devicePixelRatio||1;
+ var w=cv.clientWidth||cv.parentNode.clientWidth||280;
+ var h=cv.clientHeight||parseInt(getComputedStyle(cv).height,10)||110;
+ cv.width=Math.max(40,Math.round(w*dpr));cv.height=Math.max(30,Math.round(h*dpr));
+ var ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+ return {ctx:ctx,W:w,H:h};
+}
+// Dibuja una serie (+ linea extra punteada opcional). Devuelve {min,max,avg,act} o null.
+function dibujarSerie(cv,pts,color,dec,opts){
+ opts=opts||{};
+ var g=prepararLienzo(cv),ctx=g.ctx,W=g.W,H=g.H;
+ if(!pts||pts.length<2){
+  ctx.fillStyle='rgba(148,163,184,.7)';ctx.font='12px sans-serif';ctx.textAlign='center';
+  ctx.fillText('sin datos',W/2,H/2);ctx.textAlign='left';return null;
+ }
+ var ep=(opts.extraPts||[]).filter(function(p){return p&&p[1]!=null&&!isNaN(+p[1]);});
+ var t0=Infinity,t1=-Infinity,v0=Infinity,v1=-Infinity,i,t,v;
+ function seg(p){t=+new Date(p[0]);v=+p[1];
+  if(t<t0)t0=t;if(t>t1)t1=t;if(v<v0)v0=v;if(v>v1)v1=v;}
+ pts.forEach(seg);ep.forEach(seg);
+ if(v0===v1){v0-=1;v1+=1;}
+ var padL=opts.mini?4:46,padR=8,padT=10,padB=opts.mini?6:18;
+ function X(tt){return padL+(tt-t0)/((t1-t0)||1)*(W-padL-padR);}
+ function Y(vv){return H-padB-(vv-v0)/((v1-v0)||1)*(H-padT-padB);}
+ if(!opts.mini){
+  ctx.strokeStyle='rgba(148,163,184,.25)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(padL,padT);ctx.lineTo(padL,H-padB);ctx.lineTo(W-padR,H-padB);ctx.stroke();
+  ctx.fillStyle='rgba(148,163,184,.85)';ctx.font='9px sans-serif';
+  ctx.fillText(fmt(v1,dec)+' '+opts.u,padL+4,padT+8);
+  ctx.fillText(fmt(v0,dec)+' '+opts.u,padL+4,H-padB-3);
+  function hh(ts){var d=new Date(ts);return('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);}
+  ctx.fillText(hh(t0),padL,H-4);
+  ctx.textAlign='right';ctx.fillText(hh(t1),W-padR,H-4);ctx.textAlign='left';
+ }
+ function trazar(list){ctx.beginPath();
+  list.forEach(function(p,j){var x=X(+new Date(p[0])),y=Y(+p[1]);j?ctx.lineTo(x,y):ctx.moveTo(x,y);});}
+ if(opts.area){
+  trazar(pts);ctx.lineTo(X(t1),H-padB);ctx.lineTo(X(t0),H-padB);ctx.closePath();
+  var grd=ctx.createLinearGradient(0,padT,0,H-padB);
+  grd.addColorStop(0,conAlpha(color,.35));grd.addColorStop(1,conAlpha(color,0));
+  ctx.fillStyle=grd;ctx.fill();
+ }
+ trazar(pts);ctx.strokeStyle=color;ctx.lineWidth=opts.mini?1.5:2;ctx.lineJoin='round';ctx.stroke();
+ if(ep.length>1){trazar(ep);ctx.strokeStyle=opts.extra.c;ctx.lineWidth=1.5;
+  ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);}
+ var ult=pts[0];
+ pts.forEach(function(p){if(+new Date(p[0])>+new Date(ult[0]))ult=p;});
+ ctx.beginPath();ctx.arc(X(+new Date(ult[0])),Y(+ult[1]),opts.mini?2.5:3.5,0,Math.PI*2);
+ ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=8;ctx.fill();ctx.shadowBlur=0;
+ var vals=pts.map(function(q){return +q[1];});
+ return {min:Math.min.apply(null,vals),max:Math.max.apply(null,vals),
+  avg:vals.reduce(function(a,b){return a+b;},0)/vals.length,act:+ult[1]};
+}
+function fetchPronostico(){
+  var msg=document.getElementById('fc-msg');
+  var hoy=document.getElementById('fc-horas'), dias=document.getElementById('fc-dias');
+  if(!hoy||!dias||!msg) return;
+  function fallo(){msg.style.display='';}
+  // La API manda iconos estilo Ecowitt (S, PS, PN, N, NB, LL, T).
+  var EMO={S:'☀️',PS:'🌤️',PN:'⛅',N:'☁️',NB:'🌫️',LL:'🌧️',T:'⛈️'};
+  function em(c){return EMO[c]||'☀️';}
+  try{fetch('/api/v1/ambient/pronostico/').then(function(r){return r.json();}).then(function(j){
+    hoy.innerHTML=''; dias.innerHTML='';
+    if(!j||!j.ok||!(j.dias&&j.dias.length)){ fallo(); return; }
+    msg.style.display='none';
+    var d0=j.dias[0]||{};
+    document.getElementById('fc-emoji').textContent=em(d0.icono);
+    document.getElementById('fc-tmax').textContent=j.tmax_hoy!=null?j.tmax_hoy:'—';
+    document.getElementById('fc-tmin').textContent=j.tmin_hoy!=null?j.tmin_hoy:'—';
+    (j.horas||[]).forEach(function(h){
+      var d=document.createElement('div');d.className='h';
+      d.innerHTML='<b>'+(h.hora||'')+'</b><div class="s">'+em(h.icono)+'</div>'
+        +'<div class="t">'+(h.temp!=null?h.temp+'°':'—')+'<span style="color:#94a3b8">/'+
+        (h.prob!=null?h.prob+'%':'—')+'</span></div>';
+      hoy.appendChild(d);
+    });
+    (j.dias||[]).forEach(function(d){
+      var e=document.createElement('div');e.className='d';
+      e.innerHTML='<b>'+(d.dia||'')+'</b><div class="s">'+em(d.icono)+'</div>'
+        +'<div class="t">'+(d.tmax!=null?d.tmax+'°':'—')+'/<span style="color:#64748b">'+
+        (d.tmin!=null?d.tmin+'°':'—')+'</span></div>';
+      dias.appendChild(e);
+    });
+  }).catch(fallo);}catch(e){fallo();}
+}
+function crearTiles(){
+ var cont=document.getElementById('graf-grid');
+ if(!cont||cont.childNodes.length)return;
+ var html='';
+ GRAF_CFG.forEach(function(c){
+  html+='<div class="graf-tile" id="graf-tile-'+c.k+'" data-sensor="'+c.k+'">'
+   +'<div class="gt-h"><span class="punto" style="background:'+c.c+'"></span>'
+   +'<span>'+c.nom+'</span><small>'+c.u+'</small>'
+   +'<span class="actual" id="gt-act-'+c.k+'">--</span></div>'
+   +'<canvas id="gt-cv-'+c.k+'"></canvas>'
+   +'<div class="gt-f"><span id="gt-st-'+c.k+'"></span><span id="gt-ex-'+c.k+'"></span></div>'
+   +'</div>';
+ });
+ cont.innerHTML=html;
+}
+function dibujarGrid(){
+ crearTiles();
+ GRAF_CFG.forEach(function(c){
+  var cv=document.getElementById('gt-cv-'+c.k);
+  var eAct=document.getElementById('gt-act-'+c.k),
+      eSt=document.getElementById('gt-st-'+c.k),
+      eEx=document.getElementById('gt-ex-'+c.k);
+  if(!cv||!eAct||!eSt||!eEx)return;
+  var opts={u:c.u};
+  if(c.extra){opts.extra=c.extra;opts.extraPts=serieDe(c.extra.k);}
+  var st=dibujarSerie(cv,serieDe(c.k),c.c,c.dec,opts);
+  if(!st){eAct.textContent='--';eSt.innerHTML='<b>sin datos</b>';eEx.textContent='';return;}
+  eAct.textContent=fmt(st.act,c.dec)+' '+c.u;
+  eSt.innerHTML='máx <b>'+fmt(st.max,c.dec)+'</b> · mín <b>'+fmt(st.min,c.dec)
+   +'</b> · prom <b>'+fmt(st.avg,c.dec)+'</b>';
+  if(c.extra&&serieDe(c.extra.k).length>1){
+   var rv=serieDe(c.extra.k).map(function(p){return +p[1];});
+   eEx.innerHTML='racha máx <b>'+fmt(Math.max.apply(null,rv),1)+'</b>';
+  }else if(c.acum==='lluvia_dia'){
+   var ac=ultimoValor(c.acum);
+   eEx.innerHTML=(ac!=null)?'acum. hoy <b>'+fmt(ac,1)+' mm</b>':'';
+  }else eEx.textContent='';
+ });
+}
+function rosaVientos(cv,pts){
+ var g=prepararLienzo(cv),ctx=g.ctx,W=g.W,H=g.H;
+ var bins=[0,0,0,0,0,0,0,0],n=0;
+ pts.forEach(function(p){var d=+p[1];if(isNaN(d))return;bins[Math.round((((d%360)+360)%360)/45)%8]++;n++;});
+ if(!n){ctx.fillStyle='rgba(148,163,184,.7)';ctx.font='12px sans-serif';ctx.textAlign='center';
+  ctx.fillText('sin datos',W/2,H/2);ctx.textAlign='left';return;}
+ var nom=['N','NE','E','SE','S','SW','W','NW'],mx=Math.max.apply(null,bins)||1,rowH=(H-4)/8;
+ bins.forEach(function(c2,i){
+  var y=2+i*rowH;
+  ctx.fillStyle='rgba(148,163,184,.85)';ctx.font='9px sans-serif';ctx.fillText(nom[i],2,y+rowH-3);
+  ctx.fillStyle=(i%2?'#38bdf8':'#7dd3fc');
+  ctx.fillRect(24,y+2,Math.max((W-30)*(c2/mx),1),rowH-5);
+ });
+}
+function dibujarSparks(){
+ document.querySelectorAll('.stats-card').forEach(function(card){
+  var k=card.getAttribute('data-sensor'),cv=card.querySelector('canvas.spark');
+  if(!cv||!k)return;
+  if(k==='direccion_viento'){rosaVientos(cv,serieDe(k));return;}
+  var cfg=null;GRAF_CFG.forEach(function(c){if(c.k===k)cfg=c;});
+  dibujarSerie(cv,serieDe(k),cfg?cfg.c:'#38bdf8',cfg?cfg.dec:1,
+   {mini:true,area:true,u:cfg?cfg.u:''});
+ });
+}
+async function refrescarGraficos(){
+ try{
+  var r=await fetch('/api/v1/ambient/serie/');
+  var j=await r.json();
+  if(j&&j.ok&&j.puntos&&j.puntos.length){
+   var s={};CAMPOS_SERIE.forEach(function(c){s[c]=[];});
+   j.puntos.forEach(function(p){CAMPOS_SERIE.forEach(function(c){
+    var v=p[c];
+    if(v==null&&c==='precipitacion')v=p.lluvia_tasa;
+    if(v!=null)s[c].push([p.t,v]);});});
+   window.__series=s;
+  }
+ }catch(e){}
+ dibujarGrid();dibujarSparks();
+}
+window.graficarSensor=function(nombre){
+ var t=document.getElementById('graf-tile-'+nombre);
+ if(!t)return;
+ document.querySelectorAll('.graf-tile.focus').forEach(function(el){el.classList.remove('focus');});
+ t.classList.add('focus');
+ t.scrollIntoView({behavior:'smooth',block:'center'});
+ clearTimeout(window.__flash);
+ window.__flash=setTimeout(function(){t.classList.remove('focus');},4500);
+};
+function statsCarousel(){
+  var carousel=document.querySelector('.stats-carousel'),
+      track=document.querySelector('.stats-track'),
+      cards=Array.prototype.slice.call(document.querySelectorAll('.stats-card'));
+  if(!carousel||!track||!cards.length) return;
+  var n=cards.length,i=0,hover=false,timer=null,moved=false,x0=null;
+  var dots=document.createElement('div');dots.className='stats-dots';
+  carousel.appendChild(dots);
+  var btns=[];
+  for(var d=0;d<n;d++){(function(idx){
+    var b=document.createElement('button');
+    b.className='d'+(idx===0?' on':'');b.type='button';
+    b.setAttribute('aria-label','Ir a la estadística '+(idx+1));
+    b.onclick=function(){ir(idx);reiniciar();};
+    dots.appendChild(b);btns.push(b);
+  })(d);}
+  var count=carousel.querySelector('.stats-count');
+  if(count) dots.appendChild(count);
+  function ir(a){
+    i=((a%n)+n)%n;
+    track.style.transform='translateX(-'+(i*100)+'%)';
+    btns.forEach(function(b,j2){b.classList.toggle('on',j2===i);});
+    if(count) count.textContent=(i+1)+' / '+n;
+  }
+  carousel.parentNode.querySelectorAll('.stats-nav').forEach(function(b){
+    b.onclick=function(){ir(i+(b.classList.contains('next')?1:-1));reiniciar();};
+  });
+  cards.forEach(function(c){
+    c.addEventListener('click',function(){
+      if(moved){moved=false;return;}
+      if(window.graficarSensor) window.graficarSensor(c.getAttribute('data-sensor'));
+    });
+  });
+  // Deslizar con el dedo / mouse.
+  carousel.addEventListener('pointerdown',function(e){x0=e.clientX;moved=false;});
+  carousel.addEventListener('pointermove',function(e){
+    if(x0!=null&&Math.abs(e.clientX-x0)>40) moved=true;
+  });
+  carousel.addEventListener('pointerup',function(e){
+    if(x0==null)return;
+    var dx=e.clientX-x0;x0=null;
+    if(Math.abs(dx)>=40){ir(i+(dx<0?1:-1));reiniciar();}
+    setTimeout(function(){moved=false;},60);
+  });
+  carousel.addEventListener('pointercancel',function(){x0=null;});
+  // Pausa al pasar el mouse o al ocultar la pestaña; teclado ← →.
+  carousel.addEventListener('mouseenter',function(){hover=true;});
+  carousel.addEventListener('mouseleave',function(){hover=false;});
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden)parar();else reiniciar();});
+  carousel.setAttribute('tabindex','0');
+  carousel.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'){ir(i+1);reiniciar();}
+    else if(e.key==='ArrowLeft'){ir(i-1);reiniciar();}
+  });
+  function parar(){if(timer){clearInterval(timer);timer=null;}}
+  function reiniciar(){parar();timer=setInterval(function(){
+    if(!hover&&!document.hidden&&x0==null)ir(i+1);},6000);}
+  ir(0);reiniciar();
+}
+try{window.__series=JSON.parse((document.getElementById('series-data')||{textContent:'{}'}).textContent||'{}');}
+catch(e){window.__series={};}
+try{statsCarousel();}catch(e){console.warn('carrusel:',e);}
+try{dibujarGrid();dibujarSparks();}catch(e){console.warn('graficas:',e);}
+viva();refrescarGraficos();
+setInterval(viva,15000);setInterval(refrescarGraficos,30000);
+var _rz=null;
+window.addEventListener('resize',function(){clearTimeout(_rz);
+  _rz=setTimeout(function(){dibujarGrid();dibujarSparks();},250);});
+fetchPronostico();setInterval(fetchPronostico,600000);
+})();
+</script>
+<script src="{% static 'js/ambient_cielo.js' %}"></script>
+<script>
+(function(){
+function escenaDesdeUltima(j){
+  if(!j||!j.disponible) return null;
+  return {temperatura:j.temperatura,sensacion:j.sensacion,humedad_relativa:j.humedad_relativa,
+    radiacion_solar:j.radiacion_solar,lluvia_tasa:j.lluvia_tasa,lluvia_hora:j.lluvia_hora};
+}
+// El cielo se actualiza con cada viva(): enganche bestaand sin tocar viva().
+var _v=0;
+function enlazar(){
+  if(window.AmbientCielo&&window.AmbientCielo.init&&!_v){_v=1;window.AmbientCielo.init();}
+  try{
+    var q=new URLSearchParams(location.search);
+    var demo=(q.get('demo')||'').toLowerCase();
+    var valid=['lluvia','porllover','frio','calor','nublado','despejado','standby'];
+    if(demo&&valid.indexOf(demo)>=0) return; // modo demo: no pisar con datos
+  }catch(e){}
+  // Toma la ultima respuesta viva() y repinta el cielo (polling liviano).
+  fetch('/api/v1/ambient/ultima/').then(function(r){return r.json();}).then(function(j){
+    if(window.AmbientCielo&&window.AmbientCielo.actualizar&&j.disponible) window.AmbientCielo.actualizar(escenaDesdeUltima(j));
+  }).catch(function(){});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(enlazar,300);setInterval(enlazar,15000);});
+else{setTimeout(enlazar,300);setInterval(enlazar,15000);}
+})();
+</script>
+</body>
+</html>

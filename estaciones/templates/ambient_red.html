@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consolas Ambient en red</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:#0b1526;color:#e8eef7;font-variant-numeric:tabular-nums}
+.con{max-width:1180px;margin:0 auto;padding:14px 14px 60px}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
+.top h1{font-size:1.1rem;margin:0;color:#cbd5e1}
+.reloj{font-size:1.2rem;font-weight:700}
+.nav a{color:#7dd3fc;text-decoration:none;font-size:.85rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:14px}
+.card{background:linear-gradient(180deg,#131f36,#0b1526);border:1px solid #22344f;border-radius:18px;padding:18px;text-decoration:none;color:inherit;display:block}
+.card:hover{border-color:#38bdf8}
+.card.off{opacity:.75}
+.head{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.nombre{font-size:1.3rem;font-weight:800}
+.badge{font-weight:800;padding:6px 14px;border-radius:999px;font-size:.8rem}
+.badge.on{background:#14532d;color:#bbf7d0}
+.badge.off{background:#7f1d1d;color:#fecaca}
+.datos{display:flex;gap:16px;margin-top:12px;font-size:.9rem;color:#cbd5e1}
+.datos b{color:#fff;font-size:1.2rem;display:block}
+.meta{margin-top:10px;font-size:.8rem;color:#94a3b8}
+.vacio{background:rgba(30,41,59,.85);border:1px dashed rgba(148,163,184,.4);border-radius:12px;padding:18px;margin-top:14px}
+.vacio code{background:#0f172a;padding:2px 6px;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="con">
+<div class="top">
+<div class="nav"><a href="/">&larr; Volver al dashboard UNAL</a></div>
+<h1>Consolas Ambient en red · {{ fichas|length }} dispositivo(s)</h1>
+<div class="reloj" id="reloj">—</div>
+</div>
+{% if fichas %}
+<div class="grid" id="grid">
+{% for f in fichas %}
+<a class="card {% if not f.en_linea %}off{% endif %}" href="/ambient/?consola={{ f.device_id|urlencode }}">
+<div class="head">
+<span class="nombre">{{ f.nombre }}</span>
+{% if f.en_linea %}<span class="badge on">EN LINEA</span>{% else %}<span class="badge off">OFFLINE</span>{% endif %}
+</div>
+<div class="datos">
+<span>Temp<b>{% if f.temperatura != None %}{{ f.temperatura }}°{% else %}—{% endif %}</b></span>
+<span>Humedad<b>{% if f.humedad != None %}{{ f.humedad }} %{% else %}—{% endif %}</b></span>
+<span>Viento<b>{% if f.viento_kmh != None %}{{ f.viento_kmh }} km/h{% else %}—{% endif %}</b></span>
+</div>
+<div class="meta">
+{% if f.ultimo_reporte %}Ultimo reporte: {{ f.ultimo_reporte|date:"Y-m-d H:i:s" }}{% if f.hace_seg != None %} (hace {{ f.hace_seg }} s){% endif %}<br>{% endif %}
+{% if f.ip_origen %}IP {{ f.ip_origen }} · {% endif %}{% if f.software %}{{ f.software }}{% endif %}
+</div>
+</a>
+{% endfor %}
+</div>
+{% else %}
+<div class="vacio"><strong>Aun no hay consolas registradas.</strong><br>
+Configura la consola (Custom Server): IP <code>192.168.137.1</code> puerto <code>5000</code> path <code>/weatherstation/updateweatherstation.php</code>, protocolo Wunderground. En cuanto reporte, aparece aqui.</div>
+{% endif %}
+<p class="meta">Se marca OFFLINE tras {{ umbral_min }} min sin reportar. La lista se refresca cada 15 s.</p>
+</div>
+<script>
+(function(){
+function reloj(){var el=document.getElementById('reloj');if(!el)return;var n=new Date();function p2(x){return('0'+x).slice(-2);}el.textContent=n.toLocaleString('es-CO',{weekday:'short',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+reloj();setInterval(reloj,1000);
+async function refrescar(){
+try{
+var r=await fetch('/api/v1/ambient/consolas/');var j=await r.json();
+if(!j.ok||!j.consolas) return;
+var g=document.getElementById('grid');if(!g) return;
+var html='';
+j.consolas.forEach(function(c){
+var cls=c.en_linea?'card':'card off';
+var badge=c.en_linea?'<span class="badge on">EN LINEA</span>':'<span class="badge off">OFFLINE</span>';
+var t=c.temperatura!=null?c.temperatura+'°':'—';
+var h=c.humedad_relativa!=null?Math.round(c.humedad_relativa)+' %':'—';
+var v=c.velocidad_viento!=null?Math.round(c.velocidad_viento*3.6*10)/10+' km/h':'—';
+var meta=c.ultimo_reporte?('Ultimo: '+c.ultimo_reporte+(c.hace_seg!=null?' (hace '+c.hace_seg+' s)':'')):'Sin reportes';
+if(c.ip_origen) meta+='<br>IP '+c.ip_origen;
+if(c.software) meta+=' · '+c.software;
+html+='<a class="'+cls+'" href="/ambient/?consola='+encodeURIComponent(c.device_id)+'"><div class="head"><span class="nombre">'+c.nombre+'</span>'+badge+'</div><div class="datos"><span>Temp<b>'+t+'</b></span><span>Humedad<b>'+h+'</b></span><span>Viento<b>'+v+'</b></span></div><div class="meta">'+meta+'</div></a>';
+});
+g.innerHTML=html;
+}catch(e){}
+}
+setInterval(refrescar,15000);
+})();
+</script>
+</body>
+</html>

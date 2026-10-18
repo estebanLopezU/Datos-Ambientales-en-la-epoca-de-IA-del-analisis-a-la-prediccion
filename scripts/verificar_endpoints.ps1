@@ -1,0 +1,5 @@
+$url = "https://est-campus-unal.vercel.app"
+Write-Host "=== consolas ==="
+Invoke-RestMethod -Uri ($url + "/api/v1/ambient/consolas/") -Method Get -TimeoutSec 60 | ConvertTo-Json -Depth 4 | Select-String -Pattern "en_linea|LUNA|device_id"
+Write-Host "=== ultima ==="
+Invoke-RestMethod -Uri ($url + "/api/v1/ambient/ultima/") -Method Get -TimeoutSec 60 | ConvertTo-Json -Depth 4 | Select-String -Pattern "timestamp|en_linea|disponible|temperatura"

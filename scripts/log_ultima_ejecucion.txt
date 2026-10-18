@@ -1,0 +1,101 @@
+[20:56:24] ========================================================================
+[20:56:24] ESTACION 24 - La Nubia
+[20:56:24] ========================================================================
+[20:56:24] Pasada 1/3: metricas de resumen y calidad...
+[20:56:25]   ... pasada 1: 300,000 filas acumuladas
+[20:56:26]   ... pasada 1: 600,000 filas acumuladas
+[20:56:28]   ... pasada 1: 900,000 filas acumuladas
+[20:56:29]   ... pasada 1: 1,200,000 filas acumuladas
+[20:56:30]   ... pasada 1: 1,500,000 filas acumuladas
+[20:56:32]   ... pasada 1: 1,800,000 filas acumuladas
+[20:56:33]   ... pasada 1: 2,100,000 filas acumuladas
+[20:56:34]   ... pasada 1: 2,256,189 filas acumuladas
+[20:56:43] Pasada 2/3: escribiendo el libro de Excel...
+[20:56:50]     hoja 2004: 105,408 filas
+[20:56:57]     hoja 2005: 105,120 filas
+[20:57:05]   ... pasada 2: 300,000 filas escritas
+[20:57:06]     hoja 2006: 105,120 filas
+[20:57:13]     hoja 2007: 96,192 filas
+[20:57:21]     hoja 2008: 96,768 filas
+[20:57:29]   ... pasada 2: 600,000 filas escritas
+[20:57:30]     hoja 2009: 93,455 filas
+[20:57:40]     hoja 2010: 105,120 filas
+[20:57:48]     hoja 2011: 105,120 filas
+[20:57:54]     hoja 2012: 73,470 filas
+[20:57:55]   ... pasada 2: 900,000 filas escritas
+[20:58:00]     hoja 2013: 75,664 filas
+[20:58:07]     hoja 2014: 102,874 filas
+[20:58:14]     hoja 2015: 102,140 filas
+[20:58:17]   ... pasada 2: 1,200,000 filas escritas
+[20:58:22]     hoja 2016: 101,807 filas
+[20:58:29]     hoja 2017: 100,780 filas
+[20:58:37]     hoja 2018: 104,081 filas
+[20:58:39]   ... pasada 2: 1,500,000 filas escritas
+[20:58:43]     hoja 2019: 85,533 filas
+[20:58:50]     hoja 2020: 102,206 filas
+[20:58:56]     hoja 2021: 101,532 filas
+[20:58:59]   ... pasada 2: 1,800,000 filas escritas
+[20:59:05]     hoja 2022: 104,211 filas
+[20:59:13]     hoja 2023: 103,218 filas
+[20:59:20]     hoja 2024: 103,136 filas
+[20:59:22]   ... pasada 2: 2,100,000 filas escritas
+[20:59:29]     hoja 2025: 103,276 filas
+[20:59:35]   ... pasada 2: 2,256,189 filas escritas
+[20:59:35]     hoja 2026: 79,958 filas
+[21:00:04] Listo: C:\Users\esteb\OneDrive\Desktop\Est Campus Unal\Excel_Organizado\Estacion_24_La_Nubia.xlsx
+[21:00:04]   hojas: 26 | filas: 2,256,189/2,256,189 | 95.4 MB | 220 s
+[21:00:04] ========================================================================
+[21:00:04] ESTACION 29 - Palogrande-Postgrados
+[21:00:04] ========================================================================
+[21:00:04] Pasada 1/3: metricas de resumen y calidad...
+[21:00:05]   ... pasada 1: 300,000 filas acumuladas
+[21:00:07]   ... pasada 1: 600,000 filas acumuladas
+[21:00:08]   ... pasada 1: 900,000 filas acumuladas
+[21:00:09]   ... pasada 1: 1,200,000 filas acumuladas
+[21:00:10]   ... pasada 1: 1,500,000 filas acumuladas
+[21:00:12]   ... pasada 1: 1,800,000 filas acumuladas
+[21:00:13]   ... pasada 1: 2,100,000 filas acumuladas
+[21:00:15]   ... pasada 1: 2,400,000 filas acumuladas
+[21:00:15]   ... pasada 1: 2,544,220 filas acumuladas
+[21:00:26] Pasada 2/3: escribiendo el libro de Excel...
+[21:00:34]     hoja 2002: 105,120 filas
+[21:00:41]     hoja 2003: 105,120 filas
+[21:00:48]   ... pasada 2: 300,000 filas escritas
+[21:00:49]     hoja 2004: 105,408 filas
+[21:00:57]     hoja 2005: 105,120 filas
+[21:01:05]     hoja 2006: 105,120 filas
+[21:01:10]   ... pasada 2: 600,000 filas escritas
+[21:01:13]     hoja 2007: 105,120 filas
+[21:01:21]     hoja 2008: 105,408 filas
+[21:01:28]     hoja 2009: 105,120 filas
+[21:01:32]   ... pasada 2: 900,000 filas escritas
+[21:01:36]     hoja 2010: 105,120 filas
+[21:01:44]     hoja 2011: 105,120 filas
+[21:01:51]     hoja 2012: 98,696 filas
+[21:01:55]   ... pasada 2: 1,200,000 filas escritas
+[21:01:59]     hoja 2013: 99,600 filas
+[21:02:06]     hoja 2014: 102,863 filas
+[21:02:14]     hoja 2015: 102,124 filas
+[21:02:17]   ... pasada 2: 1,500,000 filas escritas
+[21:02:22]     hoja 2016: 101,802 filas
+[21:02:29]     hoja 2017: 100,650 filas
+[21:02:36]     hoja 2018: 104,070 filas
+[21:02:39]   ... pasada 2: 1,800,000 filas escritas
+[21:02:43]     hoja 2019: 85,470 filas
+[21:02:51]     hoja 2020: 102,078 filas
+[21:02:59]     hoja 2021: 101,466 filas
+[21:03:03]   ... pasada 2: 2,100,000 filas escritas
+[21:03:08]     hoja 2022: 104,184 filas
+[21:03:16]     hoja 2023: 103,209 filas
+[21:03:24]     hoja 2024: 103,127 filas
+[21:03:27]   ... pasada 2: 2,400,000 filas escritas
+[21:03:33]     hoja 2025: 103,257 filas
+[21:03:39]   ... pasada 2: 2,544,220 filas escritas
+[21:03:39]     hoja 2026: 79,848 filas
+[21:03:58] Listo: C:\Users\esteb\OneDrive\Desktop\Est Campus Unal\Excel_Organizado\Estacion_29_Palogrande_Postgrados.xlsx
+[21:03:58]   hojas: 28 | filas: 2,544,220/2,544,220 | 111.6 MB | 234 s
+[21:03:58] ========================================================================
+[21:03:58] RESUMEN FINAL
+[21:03:58]   Estacion 24: 26 hojas, 2,256,189/2,256,189 filas, 95.4 MB
+[21:03:58]   Estacion 29: 28 hojas, 2,544,220/2,544,220 filas, 111.6 MB
+[21:03:58] Carpeta de salida: C:\Users\esteb\OneDrive\Desktop\Est Campus Unal\Excel_Organizado

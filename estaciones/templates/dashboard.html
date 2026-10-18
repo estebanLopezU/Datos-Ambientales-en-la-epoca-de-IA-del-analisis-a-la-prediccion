@@ -1,0 +1,470 @@
+{% load static l10n %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Estaciones meteorologicas - UNAL Manizales</title>
+
+  <!-- Precarga de las fotos de fondo (copias locales en static/img,
+       descargadas de Wikimedia Commons, CC) -->
+  <link rel="preload" as="image" href="{% static 'img/nubia.png' %}">
+  <link rel="preload" as="image" href="{% static 'img/palogrande.png' %}">
+  <link rel="preload" as="image" href="{% static 'img/cable.png' %}">
+  <link rel="preload" as="image" href="{% static 'img/mzl.jpg' %}">
+  <link rel="preload" as="image" href="{% static 'img/biblio.jpg' %}">
+  <link rel="preload" as="image" href="{% static 'img/palogrande2.jpg' %}">
+
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+  <!-- Leaflet para el mapa de las estaciones -->
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        crossorigin="">
+</head>
+<body>
+<!-- Fondo rotativo: fotos de los campus UNAL Manizales (Wikimedia Commons, CC).
+     Dos capas que se alternan con fundido + creditos abajo a la derecha. -->
+<div class="fondo" aria-hidden="true">
+  <div class="fondo-capa" id="fondo-a"></div>
+  <div class="fondo-capa" id="fondo-b"></div>
+  <div class="fondo-velo"></div>
+</div>
+<a class="fondo-credito" id="fondo-credito"
+   href="https://commons.wikimedia.org/wiki/Category:Universidad_Nacional_de_Colombia,_Manizales"
+   target="_blank" rel="noopener">Fotos: Wikimedia Commons (CC) — UNAL Manizales</a>
+<div class="app">
+  <!-- ============ Barra lateral ============ -->
+  <aside class="barra">
+    <div class="marca">
+      <span class="marca-logo">UN</span>
+      <span class="marca-texto">Clima UNAL<small>Manizales</small></span>
+    </div>
+    <nav class="menu">
+      <div class="menu-grupo">Panel</div>
+      <button type="button" class="menu-item activo" data-ir="arriba">
+        <svg viewBox="0 0 20 20" width="18" height="18" fill="currentColor" aria-hidden="true"><rect x="1" y="1" width="8" height="8" rx="2"/><rect x="11" y="1" width="8" height="8" rx="2" opacity=".55"/><rect x="1" y="11" width="8" height="8" rx="2" opacity=".55"/><rect x="11" y="11" width="8" height="8" rx="2"/></svg>
+        Estaciones
+      </button>
+      <button type="button" class="menu-item" data-ir="metricas">
+        <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 17V9m4 8V5m4 12v-6m4 6V3"/></svg>
+        M&eacute;tricas clave
+      </button>
+      <div class="menu-grupo">Anal&iacute;tica</div>
+      <button type="button" class="menu-item" data-ir="grafica">
+        <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12a8 8 0 1 1 16 0"/><path d="M10 12V4"/></svg>
+        Toda la anal&iacute;tica
+      </button>
+      <button type="button" class="menu-item" data-ir="historial">
+        <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2"/></svg>
+        Historial
+      </button>
+      <button type="button" class="menu-item" data-ir="mapa">
+        <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 18s6-5.3 6-10a6 6 0 1 0-12 0c0 4.7 6 10 6 10z"/><circle cx="10" cy="8" r="2"/></svg>
+        Mapa
+      </button>
+      <div class="menu-grupo">Sistema</div>
+      <button type="button" class="menu-item" data-ir="pie">
+        <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 3h12v14H4z"/><path d="M7 7h6M7 10h6M7 13h4"/></svg>
+        Documentos
+      </button>
+      <button type="button" class="menu-item" data-ir="arriba">
+        <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 3a6 6 0 0 0-6 6c0 5-2 6-2 6h16s-2-1-2-6a6 6 0 0 0-6-6z"/><path d="M8 18a2 2 0 0 0 4 0"/></svg>
+        Estado
+        <span class="insignia" id="insignia-estado">2</span>
+      </button>
+      <a class="menu-item" href="/ambient/" style="text-decoration:none">
+        <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12a8 8 0 0 1 16 0"/><path d="M10 12V4"/></svg>
+        Ambient en vivo
+      </a>
+
+    </nav>
+    <div class="barra-pie">UNAL sede Manizales<br>Red de estaciones</div>
+  </aside>
+  <div class="principal">
+  <div class="contenedor" id="arriba">
+
+  <header class="encabezado">
+    <div>
+      <h1>Estaciones meteorologicas</h1>
+      <div class="sub">
+        Universidad Nacional de Colombia &mdash; sede Manizales
+        &middot; ventana de {{ ventana_horas }} h
+      </div>
+    </div>
+    <div class="estado-conexion">
+      <span class="punto" id="punto-estado"></span>
+      <span id="texto-estado">Conectando&hellip;</span>
+    </div>
+  </header>
+
+  {% if not tarjetas %}
+    <div class="sin-datos">
+      No hay estaciones registradas. Ejecuta
+      <code>python manage.py cargar_historicos</code>.
+    </div>
+  {% endif %}
+
+  {% if tarjetas %}
+  <!-- ============ Selector de estacion ============ -->
+  <nav class="pestanas" role="tablist" aria-label="Estaciones">
+    {% for tarjeta in tarjetas %}
+    <button type="button" role="tab"
+            class="pestana{% if forloop.first %} activa{% endif %}"
+            data-pestana="{{ tarjeta.estacion.codigo }}"
+            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+      <span class="pestana-nombre">{{ tarjeta.estacion.nombre }}</span>
+      <span class="pestana-codigo">est. {{ tarjeta.estacion.codigo }}</span>
+    </button>
+    {% endfor %}
+  </nav>
+  {% endif %}
+
+  {% for tarjeta in tarjetas %}
+  <section class="estacion-bloque{% if not forloop.first %} oculto{% endif %}"
+           role="tabpanel"
+           data-panel="{{ tarjeta.estacion.codigo }}"
+           data-estacion="{{ tarjeta.estacion.codigo }}"
+           data-nombre="{{ tarjeta.estacion.nombre }}"
+           data-lat="{{ tarjeta.estacion.latitud|unlocalize }}"
+           data-lon="{{ tarjeta.estacion.longitud|unlocalize }}"
+           data-modo="{{ tarjeta.modo }}">
+    <div class="estacion-titulo">
+      <div class="heroe">
+        <div class="heroe-grados">
+          <span class="js-valor" data-campo="temperatura" data-dec="1">{{ tarjeta.ultima.temperatura|default:"--"|floatformat:1 }}</span><span class="heroe-unidad">&deg;C</span>
+        </div>
+        <div class="heroe-info">
+          <strong>{{ tarjeta.estacion.nombre }}</strong>
+          <span>estaci&oacute;n {{ tarjeta.estacion.codigo }} &middot; ventana de {{ ventana_horas }} h</span>
+          <span class="heroe-hora js-actualizado">Actualizado: --</span>
+          <span class="heroe-registro js-registro">Registro{% if tarjeta.derivados %}: {{ tarjeta.derivados.hace }}{% endif %}</span>
+        </div>
+      </div>
+      <span class="campus campus-pildora">{{ tarjeta.estacion.campus|default:"UNAL Manizales" }}</span>
+    </div>
+
+    {% if not tarjeta.ultima %}
+      <div class="sin-datos">Esta estacion aun no tiene lecturas.</div>
+    {% else %}
+
+    {% if tarjeta.modo == "reciente" %}
+    <div class="aviso">
+      Los datos no estan en vivo: se muestran las 24 h anteriores a la ultima
+      lectura guardada ({{ tarjeta.ultima.timestamp|date:"Y-m-d H:i" }}).
+    </div>
+    {% endif %}
+
+    <!-- Tarjetas de valores actuales -->
+    <div class="rejilla zona-metricas">
+      <div class="tarjeta destacada tarjeta--temp {% if tarjeta.ultima.temperatura is None %}vacio{% endif %}">
+        <div class="etiqueta"><span class="ico">&#9728;</span><span>Temperatura</span></div>
+        <div class="valor js-valor" data-campo="temperatura" data-dec="1">
+          {{ tarjeta.ultima.temperatura|default:"--"|floatformat:1 }}<span class="unidad">&deg;C</span>
+        </div>
+        <div class="pie">Max 24 h:
+          <span class="js-resumen" data-campo="t_max" data-dec="1">
+            {{ tarjeta.resumen_24h.t_max|default:"--"|floatformat:1 }}</span>
+          &middot; Min:
+          <span class="js-resumen" data-campo="t_min" data-dec="1">
+            {{ tarjeta.resumen_24h.t_min|default:"--"|floatformat:1 }}</span>
+        </div>
+        <div class="pie">Hoy:
+          {% if tarjeta.derivados.t_max_hoy is None %}&mdash;{% else %}<span class="js-deriv" data-deriv="t_max_hoy" data-dec="1" data-sufijo="&deg;">{{ tarjeta.derivados.t_max_hoy|floatformat:1 }}&deg;</span>{% endif %}
+          m&aacute;x &middot;
+          {% if tarjeta.derivados.t_min_hoy is None %}&mdash;{% else %}<span class="js-deriv" data-deriv="t_min_hoy" data-dec="1" data-sufijo="&deg;">{{ tarjeta.derivados.t_min_hoy|floatformat:1 }}&deg;</span>{% endif %}
+          m&iacute;n &middot; ayer
+          {% if tarjeta.derivados.delta_t_txt is None %}&mdash;{% else %}<span class="js-deriv" data-deriv="delta_t_txt" data-sufijo="&deg;">{{ tarjeta.derivados.delta_t_txt }}&deg;</span>{% endif %}
+        </div>
+      </div>
+
+      <div class="tarjeta tarjeta--hum {% if tarjeta.ultima.humedad_relativa is None %}vacio{% endif %}">
+        <div class="etiqueta"><span class="ico">&#9780;</span><span>Humedad</span></div>
+        <div class="valor js-valor" data-campo="humedad_relativa" data-dec="0">
+          {{ tarjeta.ultima.humedad_relativa|default:"--"|floatformat:0 }}<span class="unidad">%</span>
+        </div>
+        <div class="pie">Promedio de la ventana:
+          <span class="js-resumen" data-campo="h_avg" data-dec="0">
+            {{ tarjeta.resumen_24h.h_avg|default:"--"|floatformat:0 }}</span> %
+          &middot; Roc&iacute;o:
+          {% if tarjeta.derivados.punto_rocio is None %}&mdash;{% else %}<span class="js-deriv" data-deriv="punto_rocio" data-dec="1" data-sufijo="&deg;">{{ tarjeta.derivados.punto_rocio|floatformat:1 }}&deg;</span>{% endif %}
+          &middot; ayer
+          {% if tarjeta.derivados.delta_h_txt is None %}&mdash;{% else %}<span class="js-deriv" data-deriv="delta_h_txt" data-sufijo=" pp">{{ tarjeta.derivados.delta_h_txt }} pp</span>{% endif %}
+        </div>
+      </div>
+
+      <div class="tarjeta tarjeta--viento {% if tarjeta.ultima.velocidad_viento is None %}vacio{% endif %}">
+        <div class="etiqueta"><span class="ico">&#8646;</span><span>Viento</span></div>
+        <div class="valor js-valor" data-campo="velocidad_viento" data-dec="1">
+          {{ tarjeta.ultima.velocidad_viento|default:"--"|floatformat:1 }}<span class="unidad">m/s</span>
+        </div>
+        <div class="brujula">
+          <svg width="64" height="64" viewBox="0 0 80 80" aria-hidden="true">
+            <circle cx="40" cy="40" r="36" fill="rgba(34,211,238,0.03)" stroke="#2e4769" stroke-width="1.5"/>
+            <circle cx="40" cy="40" r="26" fill="none" stroke="#22344f" stroke-width="1" stroke-dasharray="2 4"/>
+            <g stroke="#3d5a85" stroke-width="1.4">
+              <line x1="40" y1="4" x2="40" y2="10"/>
+              <line x1="76" y1="40" x2="70" y2="40"/>
+              <line x1="40" y1="76" x2="40" y2="70"/>
+              <line x1="4" y1="40" x2="10" y2="40"/>
+            </g>
+            <g stroke="#22344f" stroke-width="1">
+              <line x1="65.5" y1="14.5" x2="61.5" y2="18.5"/>
+              <line x1="65.5" y1="65.5" x2="61.5" y2="61.5"/>
+              <line x1="14.5" y1="65.5" x2="18.5" y2="61.5"/>
+              <line x1="14.5" y1="14.5" x2="18.5" y2="18.5"/>
+            </g>
+            <text x="40" y="21" fill="#5eead4" font-size="9" font-weight="700" text-anchor="middle">N</text>
+            <text x="62" y="43" fill="#8fa3bf" font-size="8" text-anchor="middle">E</text>
+            <text x="40" y="67" fill="#8fa3bf" font-size="8" text-anchor="middle">S</text>
+            <text x="18" y="43" fill="#8fa3bf" font-size="8" text-anchor="middle">O</text>
+            <g class="aguja js-aguja">
+              <polygon points="40,14 45,44 40,39 35,44" fill="#5eead4"/>
+              <polygon points="40,66 44,42 40,46 36,42" fill="#3d5a85"/>
+              <circle cx="40" cy="40" r="2.5" fill="#e8eef7"/>
+            </g>
+          </svg>
+          <div class="datos">
+            <div><strong class="js-valor" data-campo="direccion_viento" data-dec="0">
+              {{ tarjeta.ultima.direccion_viento|default:"--"|floatformat:0 }}</strong>&deg;
+              <span class="js-rosa"></span>
+            </div>
+            <div>Max de la ventana:
+              <span class="js-resumen" data-campo="v_max" data-dec="1">
+                {{ tarjeta.resumen_24h.v_max|default:"--"|floatformat:1 }}</span> m/s
+            </div>
+            <div>Fuerza
+              <span class="js-deriv" data-deriv="beaufort">{{ tarjeta.derivados.beaufort|default_if_none:"--" }}</span>
+              (<span class="js-deriv" data-deriv="beaufort_txt">{{ tarjeta.derivados.beaufort_txt|default_if_none:"--" }}</span>)
+            </div>
+            <div>Pico hoy:
+              {% if tarjeta.derivados.viento_pico_hoy is None %}&mdash;{% else %}<span class="js-deriv" data-deriv="viento_pico_hoy" data-dec="1">{{ tarjeta.derivados.viento_pico_hoy|floatformat:1 }}</span> m/s{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tarjeta tarjeta--lluvia {% if tarjeta.ultima.precipitacion is None %}vacio{% endif %}">
+        <div class="etiqueta"><span class="ico">&#9730;</span><span>Precipitacion</span></div>
+        <div class="valor js-valor" data-campo="precipitacion" data-dec="1">
+          {{ tarjeta.ultima.precipitacion|default:"--"|floatformat:1 }}<span class="unidad">mm</span>
+        </div>
+        <div class="pie">Hoy:
+          <span class="js-deriv" data-deriv="lluvia_dia" data-dec="1">{{ tarjeta.derivados.lluvia_dia|floatformat:1 }}</span> mm
+          &middot; ultima hora:
+          <span class="js-deriv" data-deriv="lluvia_1h" data-dec="2">{{ tarjeta.derivados.lluvia_1h|floatformat:2 }}</span> mm
+        </div>
+      </div>
+
+      <div class="tarjeta tarjeta--presion {% if tarjeta.ultima.presion_barometrica is None %}vacio{% endif %}">
+        <div class="etiqueta"><span class="ico">&#9673;</span><span>Presion</span></div>
+        <div class="valor js-valor" data-campo="presion_barometrica" data-dec="1">
+          {{ tarjeta.ultima.presion_barometrica|default:"--"|floatformat:1 }}<span class="unidad">hPa</span>
+        </div>
+        <div class="pie">Tendencia 3 h:
+          <span class="js-deriv" data-deriv="presion_tendencia_txt">{{ tarjeta.derivados.presion_tendencia_txt|default:"--" }}</span> hPa/h
+          (<span class="js-deriv" data-deriv="presion_tendencia_estado">{{ tarjeta.derivados.presion_tendencia_estado|default:"--" }}</span>)
+        </div>
+        <div class="pie">Promedio de la ventana:
+          <span class="js-resumen" data-campo="p_avg" data-dec="1">
+            {{ tarjeta.resumen_24h.p_avg|default:"--"|floatformat:1 }}</span> hPa
+        </div>
+      </div>
+
+      <div class="tarjeta tarjeta--rad {% if tarjeta.ultima.radiacion_solar is None %}vacio{% endif %}">
+        <div class="etiqueta"><span class="ico">&#9729;</span><span>Radiacion solar</span></div>
+        <div class="valor js-valor" data-campo="radiacion_solar" data-dec="0">
+          {{ tarjeta.ultima.radiacion_solar|default:"--"|floatformat:0 }}<span class="unidad">W/m&sup2;</span>
+        </div>
+        <div class="pie">Max de la ventana:
+          <span class="js-resumen" data-campo="r_max" data-dec="0">
+            {{ tarjeta.resumen_24h.r_max|default:"--"|floatformat:0 }}</span> W/m&sup2;
+          &middot; Hoy:
+          {% if tarjeta.derivados.rad_pico_hoy is None %}&mdash;{% else %}<span class="js-deriv" data-deriv="rad_pico_hoy" data-dec="0">{{ tarjeta.derivados.rad_pico_hoy }}</span>{% endif %}
+          pico, <span class="js-deriv" data-deriv="rad_total_hoy" data-dec="0">{{ tarjeta.derivados.rad_total_hoy }}</span> kJ/m&sup2;
+        </div>
+      </div>
+
+      <div class="tarjeta tarjeta--sens {% if tarjeta.derivados.sensacion is None %}vacio{% endif %}">
+        <div class="etiqueta"><span class="ico">&#9684;</span><span>Sensaci&oacute;n t&eacute;rmica</span></div>
+        <div class="valor js-deriv" data-deriv="sensacion" data-dec="1">
+          {% if tarjeta.derivados.sensacion is None %}&mdash;{% else %}{{ tarjeta.derivados.sensacion|floatformat:1 }}<span class="unidad">&deg;C</span>{% endif %}
+        </div>
+        <div class="pie">Seg&uacute;n temperatura, humedad y viento (NWS)</div>
+      </div>
+
+      <div class="tarjeta tarjeta--uv {% if tarjeta.derivados.uv is None %}vacio{% endif %}">
+        <div class="etiqueta"><span class="ico">&#9788;</span><span>&Iacute;ndice UV <em>(estimado)</em></span></div>
+        <div class="valor js-deriv" data-deriv="uv" data-dec="0">
+          {% if tarjeta.derivados.uv is None %}&mdash;{% else %}{{ tarjeta.derivados.uv }}{% endif %}
+        </div>
+        <div class="pie">
+          <span class="js-deriv" data-deriv="uv_categoria">{{ tarjeta.derivados.uv_categoria|default_if_none:"--" }}</span>
+          &middot; estimado a partir de la radiaci&oacute;n solar
+        </div>
+      </div>
+
+      <!-- Estas dos NO las mide la estacion: vienen del modelo Open-Meteo
+           (GET /api/v1/estaciones/pronostico/) y asi se etiquetan. -->
+      <div class="tarjeta tarjeta--vis">
+        <div class="etiqueta"><span class="ico">&#9673;</span><span>Visibilidad <em>(Open-Meteo)</em></span></div>
+        <div class="valor js-pro-vis">--<span class="unidad">km</span></div>
+        <div class="pie">
+          <span class="js-pro-vis-cat">--</span>
+          &middot; estimaci&oacute;n del modelo, no de la estaci&oacute;n
+        </div>
+      </div>
+
+      <div class="tarjeta tarjeta--pron">
+        <div class="etiqueta"><span class="ico">&#9731;</span><span>Pron&oacute;stico <em>(Open-Meteo)</em></span></div>
+        <div class="valor valor-pron">
+          <span class="js-pro-icono">&#9203;</span>
+          <span class="js-pro-texto">--</span>
+        </div>
+        <div class="pie pro-horas js-pro-horas">cargando pron&oacute;stico&hellip;</div>
+      </div>
+    </div>
+
+    <!-- Grafica de la ventana de 24 h -->
+    <div class="grafica-tarjeta zona-grafica">
+      <div class="grafica-cabecera">
+        <h3 class="js-titulo-grafica">Ultimas {{ ventana_horas }} horas</h3>
+        <div class="selector js-selector">
+          <button type="button" data-serie="temperatura" class="activo" style="--c:#fb7185">🌡️ Temperatura</button>
+          <button type="button" data-serie="humedad_relativa" style="--c:#38bdf8">💧 Humedad</button>
+          <button type="button" data-serie="precipitacion" style="--c:#22d3ee">🌧️ Lluvia</button>
+          <button type="button" data-serie="presion_barometrica" style="--c:#a78bfa">🧭 Presion</button>
+          <button type="button" data-serie="radiacion_solar" style="--c:#fbbf24">☀️ Radiacion</button>
+        </div>
+      </div>
+      <div class="lienzo-wrap">
+        <canvas class="js-lienzo"></canvas>
+      </div>
+      <div class="grafica-pie">
+        <span class="js-puntos">&mdash;</span>
+        <span class="js-stats">&mdash;</span>
+        <span class="js-actualizado">&mdash;</span>
+      </div>
+    </div>
+
+    <!-- ============ Historial y estadisticas ============ -->
+    <section class="historial-tarjeta zona-historial">
+      <div class="grafica-cabecera">
+        <h3>Historial y estad&iacute;sticas</h3>
+        <div class="historial-selectores">
+          <select class="js-hist-anio" aria-label="A&ntilde;o">
+            <option value="">A&ntilde;o</option>
+          </select>
+          <select class="js-hist-mes" aria-label="Mes" disabled>
+            <option value="">Mes</option>
+          </select>
+          <select class="js-hist-dia" aria-label="D&iacute;a" disabled>
+            <option value="">D&iacute;a</option>
+          </select>
+          <button type="button" class="historial-boton js-hist-crudos"
+                  disabled title="Elige un d&iacute;a para ver los datos crudos">
+            Datos crudos
+          </button>
+          <button type="button" class="historial-boton js-hist-csv"
+                  title="Exporta la tabla visible en CSV">
+            CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- Migas de navegacion del drill-down -->
+      <div class="historial-migas js-hist-migas"></div>
+
+      <!-- Grafica del periodo/nivel seleccionado -->
+      <div class="historial-grafica">
+        <div class="grafica-cabecera">
+          <h3 class="js-hist-titulo-grafica">Gr&aacute;fica del per&iacute;odo</h3>
+          <div class="selector js-hist-selector">
+            <button type="button" data-var="temperatura" class="activo" style="--c:#fb7185">&#127777; Temperatura</button>
+            <button type="button" data-var="lluvia" style="--c:#22d3ee">&#127783; Lluvia</button>
+            <button type="button" data-var="humedad" style="--c:#38bdf8">&#128167; Humedad</button>
+            <button type="button" data-var="presion" style="--c:#a78bfa">&#129517; Presi&oacute;n</button>
+            <button type="button" data-var="viento" style="--c:#5eead4">&#127788; Viento</button>
+            <button type="button" data-var="radiacion" style="--c:#fbbf24">&#9728; Radiaci&oacute;n</button>
+          </div>
+        </div>
+        <div class="lienzo-wrap hist-lienzo-wrap">
+          <canvas class="js-hist-lienzo"></canvas>
+        </div>
+        <div class="historial-leyenda js-hist-leyenda"></div>
+      </div>
+
+      <!-- Resumen global del periodo elegido -->
+      <div class="historial-resumen js-hist-resumen"></div>
+
+      <!-- Tabla de estadisticas por nivel (o datos crudos) -->
+      <div class="historial-tabla-wrap js-hist-tabla"></div>
+
+      <div class="historial-pie js-hist-info">
+        Explora a&ntilde;o &rarr; mes &rarr; d&iacute;a &rarr; hora. La lluvia
+        es el acumulado de lecturas de 5 min; los huecos largos no se rellenan.
+      </div>
+    </section>
+
+    {% endif %}
+  </section>
+  {% endfor %}
+
+  <!-- ============ Mapa de ubicacion ============ -->
+  <!-- Va despues de los paneles de datos: primero se consulta la estacion,
+       despues su ubicacion (igual que el orden del menu lateral). -->
+  <section class="mapa-tarjeta" id="mapa-seccion">
+    <h3>Ubicaci&oacute;n de las estaciones</h3>
+    <div id="mapa"></div>
+    <div class="mapa-leyenda">
+      La Nubia (24) al sureste, junto al aeropuerto; Palogrande (29) al
+      centro-norte, sobre la Av. Paralela. Coordenadas de fuentes
+      p&uacute;blicas: confirmar contra la ficha t&eacute;cnica de cada
+      estaci&oacute;n antes de publicarlas.
+    </div>
+  </section>
+
+  <footer class="pie-pagina" id="pie">
+    <div class="pie-columnas">
+      <div class="pie-col">
+        <h4>Estaciones</h4>
+        Datos cada 5 minutos de las estaciones autom&aacute;ticas
+        <strong>La Nubia (24)</strong> y
+        <strong>Palogrande-Postgrados (29)</strong>, Universidad Nacional de
+        Colombia sede Manizales. Las celdas vac&iacute;as indican que la
+        estaci&oacute;n no registr&oacute; ese valor; no se reemplazan por
+        cero.
+      </div>
+      <div class="pie-col">
+        <h4>Variables</h4>
+        <em>Visibilidad</em> y <em>pron&oacute;stico</em> provienen del
+        modelo Open-Meteo (no las miden las estaciones) y se etiquetan como
+        tal. El <em>&iacute;ndice UV</em> se estima a partir de la
+        radiaci&oacute;n solar.
+      </div>
+      <div class="pie-col">
+        <h4>API</h4>
+        Recepci&oacute;n:
+        <code>POST /api/v1/estaciones/datos/</code><br>
+        Serie:
+        <code>GET /api/v1/estaciones/serie/?estacion=24</code><br>
+        Pron&oacute;stico:
+        <code>GET /api/v1/estaciones/pronostico/?estacion=24</code><br>
+        Historial:
+        <code>GET /api/v1/estaciones/historial/?estacion=24</code>
+      </div>
+    </div>
+    <div class="pie-legal">
+      Universidad Nacional de Colombia &mdash; sede Manizales &middot;
+      Red de estaciones meteorol&oacute;gicas
+    </div>
+  </footer>
+
+  </div><!-- /.contenedor -->
+  </div><!-- /.principal -->
+</div><!-- /.app -->
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+</html>
+

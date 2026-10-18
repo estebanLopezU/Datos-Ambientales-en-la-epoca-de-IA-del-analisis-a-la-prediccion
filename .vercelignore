@@ -1,0 +1,15 @@
+# No se suben al deploy de Vercel (bundle limpio y bajo el limite de 500 MB)
+db.sqlite3
+db.sqlite3-journal
+db.sqlite3-wal
+db.sqlite3-shm
+Est_Datos/
+Excel_Organizado/
+.secret_key
+*.log
+server.err
+*.pyc
+__pycache__/
+.env
+.env.local
+.vercel/

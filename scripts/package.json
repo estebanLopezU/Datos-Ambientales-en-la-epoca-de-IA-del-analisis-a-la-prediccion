@@ -1,0 +1,15 @@
+{
+  "name": "est-campus-scripts",
+  "version": "1.0.0",
+  "description": "Pruebas de navegador del dashboard (requieren el servidor Django corriendo).",
+  "private": true,
+  "scripts": {
+    "test": "node 21_probar_zoom_mapa.js"
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "playwright": "^1.64.0"
+  }
+}
+

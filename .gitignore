@@ -1,0 +1,51 @@
+# Base de datos local (se regenera con migrate + cargar_historicos)
+# La base con historico pesa ~1.1 GB: NO se sube a GitHub.
+db.sqlite3
+db.sqlite3-journal
+db.sqlite3-wal
+db.sqlite3-shm
+
+# Clave secreta local generada al arrancar
+.secret_key
+
+# Logs del servidor local
+servidor.log
+servidor.err.log
+logs/
+*.log
+*.err
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Datos crudos pesados (308 + 197 MB): no van al repo.
+# Se cargan con: python manage.py cargar_historicos
+Est_Datos/
+Excel_Organizado/
+
+# Archivos temporales de verificacion
+_*.txt
+tmp/
+pagina_luna*.html
+
+# Artefactos del deploy en Vercel (se regeneran con los scripts)
+staticfiles/
+db_vercel.sqlite3
+
+# Dependencias de Node (solo para las pruebas de navegador en scripts/)
+node_modules/
+package-lock.json
+
+# Windows / OneDrive / editores
+Thumbs.db
+desktop.ini
+~$*
+.vscode/
+.idea/
+*.swp
+.vercel
+.env*
