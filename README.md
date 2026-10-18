@@ -102,6 +102,88 @@ python manage.py test estaciones            # 48 pruebas (endpoint + Ambient)
 python scripts\16_revisar_frontend.py       # sintaxis JS + estaticos + plantilla
 python scripts\17_probar_servidor.py        # servidor en vivo de punta a punta
 ```
+### Base de datos (local y Vercel)
+
+El proyecto usa **dos bases de datos SQLite**, una local y otra optimizada para Vercel. Ninguna sube al repo: GitHub rechaza archivos >100 MB y SQLite no es un buen candidato para almacenamiento en la nube.
+
+#### 1. Base local: `db.sqlite3`
+
+- Ubicación: raíz del proyecto.
+- Contenido: historial completo de ambas estaciones (2002-2026, ~4.8M lecturas, ~1.1 GB).
+- Uso: desarrollo, pruebas, dashboard local.
+- Comandos:
+  ```powershell
+  python manage.py migrate                  # crear/esquema
+  python manage.py cargar_historicos        # cargar datos (idempotente)
+  python manage.py runserver 0.0.0.0:5000   # servidor
+  ```
+
+#### 2. Base para Vercel: `db_vercel.sqlite3`
+
+- Ubicación: raíz del proyecto (se genera en el deploy).
+- Contenido: copia optimizada para Vercel:
+  - Últimos 90 días: resolución total (crudos).
+  - 2002 → 90 días: 1 lectura por hora y estación (~420k filas, lineal).
+  - Otras tablas (`estaciones`, `consolas`, `auth`, etc.): completas.
+- Tamaño: < 450 MB (limite del bundle de Vercel).
+- Generación:
+  ```powershell
+  python scripts/crear_db_vercel.py 90   # 90 días crudos
+  python scripts/crear_db_vercel.py 30   # 30 días (si excede los 450 MB)
+  ```
+- Uso en Vercel: `settings.py` apunta a `db_vercel.sqlite3` cuando `VERCEL=1`.
+
+#### 3. Flujo de sincronización con Vercel
+
+```
+[Sistema local] → POST /api/v1/estaciones/datos/ → db.sqlite3
+                     ↓
+              [Task Scheduler / script]
+                     ↓
+              python scripts/crear_db_vercel.py 90   (regenera db_vercel.sqlite3)
+                     ↓
+              vercel deploy --prod --yes               (subió a Vercel)
+```
+
+- `scripts/sync_db_vercel.ps1`: comando completo (regenera DB + deploy en Vercel).
+- Ejecutar periódicamente (task scheduler cada 30 min) para que el panel público muestre LUNA en línea.
+
+#### 4. Archivos ignorados en `.gitignore`
+
+| Archivo | Por qué |
+|---|---|
+| `db.sqlite3` | Base local completa (~1 GB, no sube a GitHub) |
+| `db_vercel.sqlite3` | Base para Vercel (se genera en el deploy) |
+| `.secret_key`, `.env*` | Secretos / credenciales |
+| `staticfiles/` | Archivos estáticos (se generan con `collectstatic`) |
+| `Est_Datos/`, `Excel_Organizado/` | Datos crudos (142 + 166 MB, en el Release) |
+| `.vercel/` | Config local de Vercel (no compartir) |
+| `tmp/*.zip`, `tmp/*.log` | Backup y logs |
+
+#### 5. Respaldo del historico completo (GitHub Releases)
+
+El historial 2002-2026 (4.800.936 lecturas, ~1 GB) se publica comprimido como assets del Release `respaldo-db-2002-2026`:
+
+- `db_historico_2002_2026.zip` (~250 MB): la base completa con MANIFIESTO.txt y sha256.
+- `datos_crudos_2002_2026.zip` (~270 MB): `Est_Datos/` (2 CSV) + `Excel_Organizado/` (2 xlsx + README).
+
+**Restaurar en cualquier PC (proyecto completo):**
+```powershell
+# 1. Clonar el codigo:
+git clone https://github.com/estebanLopezU/Datos-Ambientales-en-la-epoca-de-IA-del-analisis-a-la-prediccion.git
+cd Datos-Ambientales-en-la-epoca-de-IA-del-analisis-a-la-prediccion
+# 2. Descargar los dos zips del Release a la raiz y descomprimir:
+#    https://github.com/estebanLopezU/Datos-Ambientales-en-la-epoca-de-IA-del-analisis-a-la-prediccion/releases/tag/respaldo-db-2002-2026
+Expand-Archive db_historico_2002_2026.zip -DestinationPath .
+Expand-Archive datos_crudos_2002_2026.zip -DestinationPath .
+# 3. Arrancar (verificar sha256 contra el MANIFIESTO.txt si se desea):
+python manage.py migrate
+python manage.py runserver 0.0.0.0:5000
+```
+
+Para actualizar el respaldo cuando la base crece:
+`python scripts/subir_respaldo_release.py <zip> <tag>`.
+
 
 ## Endpoint de recepcion
 
