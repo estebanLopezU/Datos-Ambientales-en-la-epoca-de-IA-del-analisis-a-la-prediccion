@@ -354,10 +354,17 @@ def _detalle(request, est, device_id):
             .values("timestamp", "temperatura", "humedad_relativa",
                     "precipitacion", "presion_barometrica",
                     "velocidad_viento", "direccion_viento",
-                    "radiacion_solar")[:20]
+                    "radiacion_solar", "lluvia_dia")[:20]
         )
         for r in recientes:
             r["timestamp"] = timezone.localtime(r["timestamp"])
+            # La consola Ambient casi nunca manda 'precipitacion' (solo si
+            # llega hourlyrainin): mostrar el acumulado del dia como respaldo
+            # para no pintar una columna de '—'.
+            if r["precipitacion"] is None:
+                r["precipitacion"] = r.pop("lluvia_dia")
+            else:
+                r.pop("lluvia_dia", None)
     if ultima is not None:
         ultima_hora = timezone.localtime(ultima.timestamp)
     else:

@@ -311,8 +311,8 @@ function reloj(){
 var el=document.getElementById('reloj');
 if(!el) return;
 var n=new Date();
-var dias=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-var mon=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var dias=['dom','lun','mar','mié','jue','vie','sáb'];
+var mon=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 function p2(x){return ('0'+x).slice(-2);}
 el.textContent=dias[n.getDay()]+', '+p2(n.getDate())+' '+mon[n.getMonth()]+' '+n.getFullYear()+' '+p2(n.getHours())+':'+p2(n.getMinutes())+':'+p2(n.getSeconds());
 }
@@ -399,6 +399,7 @@ document.getElementById('recargar').addEventListener('click', function(){
 });
 // No recargar la pagina al llegar un dato nuevo: romperia el carrusel de estadisticas.
 window.__ultTs=j.timestamp||window.__ultTs;
+window.__ultima=j; // el cielo (enlazar) la reutiliza sin otro fetch.
 }catch(e){}
 }
 // ---------- Graficas: todas las estadisticas del dia ----------
@@ -482,7 +483,9 @@ function fetchPronostico(){
   function fallo(){msg.style.display='';}
   // La API manda iconos estilo Ecowitt (S, PS, PN, N, NB, LL, T).
   var EMO={S:'☀️',PS:'🌤️',PN:'⛅',N:'☁️',NB:'🌫️',LL:'🌧️',T:'⛈️'};
-  function em(c){return EMO[c]||'☀️';}
+  // Desconocido -> signo: no inventar un sol que oculte un error de
+  // mapeo en la API.
+  function em(c){return EMO[c]||'❔';}
   try{fetch('/api/v1/ambient/pronostico/').then(function(r){return r.json();}).then(function(j){
     hoy.innerHTML=''; dias.innerHTML='';
     if(!j||!j.ok||!(j.dias&&j.dias.length)){ fallo(); return; }
@@ -624,7 +627,15 @@ function statsCarousel(){
   cards.forEach(function(c){
     c.addEventListener('click',function(){
       if(moved){moved=false;return;}
-      if(window.graficarSensor) window.graficarSensor(c.getAttribute('data-sensor'));
+      var k=c.getAttribute('data-sensor');
+      var t=document.getElementById('graf-tile-'+k);
+      if(!t){
+        // Sin grafico dedicado (ej. direccion del viento, que tiene rosa
+        // propia en el spark): no hacer nada en silencio seria confuso.
+        console.info('sin grafico dedicado para', k);
+        return;
+      }
+      if(window.graficarSensor) window.graficarSensor(k);
     });
   });
   // Deslizar con el dedo / mouse.
@@ -674,7 +685,8 @@ function escenaDesdeUltima(j){
   return {temperatura:j.temperatura,sensacion:j.sensacion,humedad_relativa:j.humedad_relativa,
     radiacion_solar:j.radiacion_solar,lluvia_tasa:j.lluvia_tasa,lluvia_hora:j.lluvia_hora};
 }
-// El cielo se actualiza con cada viva(): enganche bestaand sin tocar viva().
+// El cielo se actualiza con cada viva(): reutiliza su ultima respuesta
+// (window.__ultima) en vez de pedir /ultima/ una segunda vez cada 15 s.
 var _v=0;
 function enlazar(){
   if(window.AmbientCielo&&window.AmbientCielo.init&&!_v){_v=1;window.AmbientCielo.init();}
@@ -684,13 +696,12 @@ function enlazar(){
     var valid=['lluvia','porllover','frio','calor','nublado','despejado','standby'];
     if(demo&&valid.indexOf(demo)>=0) return; // modo demo: no pisar con datos
   }catch(e){}
-  // Toma la ultima respuesta viva() y repinta el cielo (polling liviano).
-  fetch('/api/v1/ambient/ultima/').then(function(r){return r.json();}).then(function(j){
-    if(window.AmbientCielo&&window.AmbientCielo.actualizar&&j.disponible) window.AmbientCielo.actualizar(escenaDesdeUltima(j));
-  }).catch(function(){});
+  var j=window.__ultima;
+  if(window.AmbientCielo&&window.AmbientCielo.actualizar&&j&&j.disponible)
+    window.AmbientCielo.actualizar(escenaDesdeUltima(j));
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(enlazar,300);setInterval(enlazar,15000);});
-else{setTimeout(enlazar,300);setInterval(enlazar,15000);}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(enlazar,2000);setInterval(enlazar,15000);});
+else{setTimeout(enlazar,2000);setInterval(enlazar,15000);}
 })();
 </script>
 </body>
