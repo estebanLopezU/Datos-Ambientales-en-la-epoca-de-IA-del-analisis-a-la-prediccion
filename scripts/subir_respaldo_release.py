@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Crea el release respaldo-db-2002-2026 y sube tmp/db_historico_2002_2026.zip.
+"""Sube un zip como asset de un release de GitHub.
 
 Usa el token del Credential Manager de Windows (git credential fill), el
 mismo que permite hacer push, que trae scope repo.
+
+Uso:
+    python scripts/subir_respaldo_release.py [zip] [tag]
+Por defecto: tmp/db_historico_2002_2026.zip respaldo-db-2002-2026
 """
 import json
 import os
@@ -11,24 +15,8 @@ import sys
 import time
 import urllib.request
 
-ZIP = "tmp\\db_historico_2002_2026.zip"
-TAG = "respaldo-db-2002-2026"
 REPO = "estebanLopezU/mineria_de_datos_proyecto"
-
-BODY = """Respaldo completo de db.sqlite3 con el historial de las estaciones UNAL Manizales.
-
-- Lecturas: 4.800.936 (La Nubia 24: 2.256.189 | Palogrande 29: 2.544.220 | Ambient 99: 527)
-- Rango: 2002-01-01 05:00:00 .. 2026-10-16 20:05:59 (America/Bogota)
-- sha256 db.sqlite3: be21582b9fb0bf6917eac824e054de0b58c5be1bfd5ff4280ce7ff0a7d0fa3cc
-
-**Restaurar:**
-```powershell
-# 1. Descargar db_historico_2002_2026.zip a la raiz del proyecto
-# 2. Verificar el sha256 contra el manifiesto (opcional)
-Expand-Archive db_historico_2002_2026.zip -DestinationPath .
-python manage.py runserver 0.0.0.0:5000
-```
-"""
+DEFAULTS = ("tmp\\db_historico_2002_2026.zip", "respaldo-db-2002-2026")
 
 
 def token():
@@ -55,44 +43,39 @@ def api(url, data=None, method=None, headers=None, raw=None):
         h["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=body, headers=h,
                                  method=method or ("POST" if body else "GET"))
-    with urllib.request.urlopen(req, timeout=600) as r:
+    with urllib.request.urlopen(req, timeout=1800) as r:
         return json.loads(r.read().decode("utf-8"))
 
 
 def main():
     global TOKEN
     TOKEN = token()
-    if not os.path.exists(ZIP):
-        sys.exit("falta " + ZIP)
-    # Release existente: reutilizar o recrear.
+    zip_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULTS[0]
+    tag = sys.argv[2] if len(sys.argv) > 2 else DEFAULTS[1]
+    if not os.path.exists(zip_path):
+        sys.exit("falta " + zip_path)
+    nombre = os.path.basename(zip_path)
     rels = api("https://api.github.com/repos/%s/releases" % REPO)
-    rel = next((r for r in rels if r["tag_name"] == TAG), None)
-    if rel:
-        print("release ya existe id", rel["id"])
-        # Quitar assets previos para reemplazar.
-        for a in rel["assets"]:
-            print("borrando asset previo:", a["name"])
-            api(a["url"], method="DELETE")
-    else:
-        rel = api("https://api.github.com/repos/%s/releases" % REPO, data={
-            "tag_name": TAG,
-            "name": "Respaldo base de datos historico 2002-2026",
-            "body": BODY,
-            "draft": False,
-            "prerelease": False,
-        })
-        print("release creado id", rel["id"], rel["html_url"])
-    up = rel["upload_url"].split("{")[0] + "?name=" + os.path.basename(ZIP)
-    print("subiendo %.1f MB..." % (os.path.getsize(ZIP) / 1e6), flush=True)
+    rel = next((r for r in rels if r["tag_name"] == tag), None)
+    if not rel:
+        sys.exit("no existe el release con tag " + tag)
+    previo = next((a for a in rel["assets"] if a["name"] == nombre), None)
+    if previo:
+        print("borrando asset previo:", nombre)
+        api(previo["url"], method="DELETE")
+    up = rel["upload_url"].split("{")[0] + "?name=" + nombre
+    mb = os.path.getsize(zip_path) / 1e6
+    print("subiendo %s (%.1f MB) a %s..." % (nombre, mb, tag), flush=True)
     t0 = time.time()
-    with open(ZIP, "rb") as f:
+    with open(zip_path, "rb") as f:
         raw = f.read()
-    asset = api(up, raw=raw,
-                headers={"Content-Type": "application/zip"})
-    print("asset id", asset["id"], "| url:", asset["browser_download_url"],
-          "| %.0f s" % (time.time() - t0))
-    print("tamanio reportado:", asset["size"], "bytes")
+    asset = api(up, raw=raw, headers={"Content-Type": "application/zip"})
+    print("asset id", asset["id"], "| %.0f s" % (time.time() - t0))
+    print("url:", asset["browser_download_url"])
+    print("tamanio reportado:", asset["size"], "bytes | state:",
+          asset["state"])
 
 
 if __name__ == "__main__":
     sys.exit(main())
+

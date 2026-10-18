@@ -61,19 +61,31 @@ Sin la variable se usa `db.sqlite3` junto al proyecto (como hasta ahora).
 
 ### Respaldo del historico completo (GitHub Releases)
 
-El historial 2002-2026 (4.800.936 lecturas, ~1 GB) **no va al repo** (GitHub
-rechaza archivos >100 MB), pero esta publicado comprimido como Release:
+El historial 2002-2026 (4.800.936 lecturas, ~1 GB) y los datos crudos
+**no van al repo** porque GitHub rechaza archivos >100 MB
+(`db.sqlite3` pesa 1 GB; los CSV pesan 142 y 166 MB), pero estan publicados
+comprimidos como assets del Release `respaldo-db-2002-2026`:
 
-- Tag: `respaldo-db-2002-2026`
-- Asset: `db_historico_2002_2026.zip` (~250 MB, con `MANIFIESTO.txt` y sha256)
-- Restaurar en cualquier PC:
+- `db_historico_2002_2026.zip` (~250 MB): la base completa con MANIFIESTO.txt y sha256.
+- `datos_crudos_2002_2026.zip` (~270 MB): `Est_Datos/` (2 CSV) + `Excel_Organizado/` (2 xlsx + README).
+
+**Restaurar en cualquier PC (proyecto completo):**
 
 ```powershell
-# 1. Descargar el zip a la raiz del proyecto y descomprimir:
+# 1. Clonar el codigo:
+git clone https://github.com/estebanLopezU/mineria_de_datos_proyecto.git
+cd mineria_de_datos_proyecto
+# 2. Descargar los dos zips del Release a la raiz y descomprimir:
+#    https://github.com/estebanLopezU/mineria_de_datos_proyecto/releases/tag/respaldo-db-2002-2026
 Expand-Archive db_historico_2002_2026.zip -DestinationPath .
-# 2. (opcional) verificar contra el MANIFIESTO.txt del zip
+Expand-Archive datos_crudos_2002_2026.zip -DestinationPath .
+# 3. Arrancar (verificar sha256 contra el MANIFIESTO.txt si se desea):
+python manage.py migrate
 python manage.py runserver 0.0.0.0:5000
 ```
+
+Para actualizar el respaldo cuando la base crece:
+`python scripts/subir_respaldo_release.py <zip> <tag>`.
 
 ### Estado actual de la base local
 

@@ -26,7 +26,10 @@ Est_Datos/
 Excel_Organizado/
 
 # Zip del respaldo (ya publicado en el Release; no duplicar en git).
+# Igual los logs de tmp: solo las paginas de prueba (pagina_luna*.html) van.
 tmp/*.zip
+tmp/*.log
+tmp/*.err
 
 # Dependencias de Node (solo para las pruebas de navegador en scripts/)
 node_modules/
