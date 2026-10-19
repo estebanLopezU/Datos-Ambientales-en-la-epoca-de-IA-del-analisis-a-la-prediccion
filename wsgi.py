@@ -7,4 +7,5 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from est_campus.wsgi import application
 
-# La aplicación WSGI/ASGI es la entrada al servidor
+# Vercel busca la variable 'app' como entrada WSGI
+app = application
