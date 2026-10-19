@@ -53,3 +53,4 @@ logs/_vc_login.log
 # scripts/crear_db_vercel.py).
 staticfiles/
 db_vercel.sqlite3
+.vercel

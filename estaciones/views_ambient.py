@@ -289,7 +289,7 @@ def _detalle(request, est, device_id):
         if ultima is not None:
             delta = timezone.now() - ultima.timestamp
             hace = delta
-            en_linea = delta <= timedelta(minutes=10)
+            en_linea = delta <= timedelta(minutes=UMBRAL_OFFLINE_MIN)
             consola = _consola(ultima, est)
             # Max/min del dia + racha pico del dia (para la consola).
             inicio_dia = timezone.localtime(ultima.timestamp).replace(
