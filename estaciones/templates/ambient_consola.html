@@ -146,8 +146,8 @@ body[data-escena="lluvia"] .card,body[data-escena="frio"] .card,body[data-escena
 <span id="chip-clima"><span class="dot"></span><span>Cielo vivo</span></span>
 <div class="reloj" id="reloj">—</div>
 {% if ultima %}{% if en_linea %}
-<span class="badge on" id="estado">EN LINEA</span>
-{% else %}<span class="badge off" id="estado">SIN DATOS RECIENTES</span>{% endif %}
+<span class="badge on" id="estado" title="reportando cada pocos minutos">{{ estado_txt|default:"EN LINEA" }}</span>
+{% else %}<span class="badge off" id="estado" title="no responde en la red ni reporta datos">{{ estado_txt|default:"SIN DATOS RECIENTES" }}</span>{% endif %}
 {% else %}<span class="badge off" id="estado">SIN DATOS</span>{% endif %}
 <button id="recargar" class="btn-recargar">🔄 Recargar estado</button>
 </div>
@@ -373,26 +373,40 @@ set('v-pre',j.presion_barometrica,1); set('v-pabs',j.presion_absoluta,1);
 // pagina cuando entra un dato mas nuevo (asi todo queda sincronizado).
 var vl=document.getElementById('vivo-linea');
 if(vl&&j.timestamp) vl.textContent='Ultimo: '+j.timestamp+' - cada 15 s';
-// El badge de estado tambien se refresca solo: el servidor envia la edad
-// de la lectura (hace_seg) y el umbral en minutos, asi el veredicto no
-// depende del reloj del visitante.
+// El badge de estado tambien se refresca solo: el servidor manda el
+// veredicto (en_linea + motivo), que combina el reporte reciente con el
+// sondeo de red, asi no depende del reloj del visitante.
+//   motivo 'reporte' -> reportando       'red'     -> conectada, sin datos
+//   'sin-red' -> no responde             'desconocido'/'nunca' -> sin senal
+function badgeDe(j){
+  var enLin, txt;
+  if(j.en_linea!=null){
+    enLin=!!j.en_linea;
+    txt=j.estado_txt||(enLin?'EN LINEA':'SIN DATOS RECIENTES');
+  }else{
+    var umb=(j.umbral_offline_min!=null?j.umbral_offline_min:10)*60;
+    enLin=j.hace_seg!=null&&j.hace_seg<=umb;
+    txt=enLin?'EN LINEA':'SIN DATOS RECIENTES';
+  }
+  return {enLin:enLin,txt:txt};
+}
 var eb=document.getElementById('estado');
-if(eb&&j.hace_seg!=null){
-  var umb=(j.umbral_offline_min!=null?j.umbral_offline_min:10)*60;
-  var enLin=j.hace_seg<=umb;
-  eb.className='badge '+(enLin?'on':'off');
-  eb.textContent=enLin?'EN LINEA':'SIN DATOS RECIENTES';
+if(eb){
+  var b=badgeDe(j);
+  eb.className='badge '+(b.enLin?'on':'off');
+  eb.textContent=b.txt;
+  if(j.motivo==='red'&&j.timestamp) eb.title='Consola conectada - sin datos desde '+j.timestamp;
 }
 // Botón manual: fuerza la actualización de la fecha y el badge.
 document.getElementById('recargar').addEventListener('click', function(){
   fetch('/api/v1/ambient/ultima/').then(function(r){return r.json();}).then(function(j){
-    if(j.ok&&j.hace_seg!=null){
-      var umb=(j.umbral_offline_min!=null?j.umbral_offline_min:10)*60;
-      var enLin=j.hace_seg<=umb;
+    if(j.ok){
       var eb=document.getElementById('estado');
       if(eb){
-        eb.className='badge '+(enLin?'on':'off');
-        eb.textContent=enLin?'EN LINEA':'SIN DATOS RECIENTES';
+        var b=badgeDe(j);
+        eb.className='badge '+(b.enLin?'on':'off');
+        eb.textContent=b.txt;
+        if(j.motivo==='red'&&j.timestamp) eb.title='Consola conectada - sin datos desde '+j.timestamp;
       }
     }
   }).catch(function(){});
@@ -704,5 +718,118 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 else{setTimeout(enlazar,2000);setInterval(enlazar,15000);}
 })();
 </script>
+<div class="stats-section" style="margin-top:18px">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+    <span style="font-size:1.6rem">🤖</span>
+    <div>
+      <h3 style="color:#7dd3fc;margin:0;font-size:1.15rem">Prediccion ML con IA</h3>
+      <div style="color:#64748b;font-size:.78rem">Proximas 6 horas · kNN + fallback</div>
+    </div>
+  </div>
+  <div id="pred-info" style="font-size:.8rem;color:#94a3b8;margin-bottom:10px;padding:8px 10px;background:rgba(15,23,42,.6);border:1px solid #22344f;border-radius:8px"></div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+    <button id="pred-prev" type="button" style="padding:6px 12px;border:none;background:#1e293b;color:#e2e8f0;border-radius:8px;cursor:pointer;font-size:1.1rem;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.4)">‹</button>
+    <span id="pred-slide-info" style="font-size:.8rem;color:#94a3b8;flex:1;text-align:center"></span>
+    <button id="pred-next" type="button" style="padding:6px 12px;border:none;background:#1e293b;color:#e2e8f0;border-radius:8px;cursor:pointer;font-size:1.1rem;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.4)">›</button>
+  </div>
+  <div id="pred-chart-box" style="padding:10px;border-radius:10px;transition:background .3s">
+    <canvas id="pred-chart" height="140"></canvas>
+  </div>
+  <div id="pred-help" style="margin:8px 0 12px">
+  <table style="width:100%;border-collapse:separate;border-spacing:0;border:1px solid #334155;border-radius:8px;overflow:hidden;font-size:.78rem;color:#cbd5e1">
+    <thead><tr style="color:#e2e8f0;text-align:left">
+      <th style="padding:6px 8px;background:#1e293b;border-bottom:2px solid #334155;font-weight:600">Concepto</th>
+      <th style="padding:6px 8px;background:#1e293b;border-bottom:2px solid #334155;font-weight:600">Detalle</th></tr></thead>
+    <tbody>
+      <tr><td style="padding:6px 8px;font-weight:600;background:#0f172a;border-bottom:1px solid #1f2937">Que hace</td><td style="padding:6px 8px;border-bottom:1px solid #1f2937">Predice temperatura, humedad, precipitacion, viento y radiacion para las proximas 1, 3 y 6 horas.</td></tr>
+      <tr><td style="padding:6px 8px;font-weight:600;background:#0f172a;border-bottom:1px solid #1f2937">Modelo</td><td style="padding:6px 8px;border-bottom:1px solid #1f2937">kNN (vecinos mas cercanos) entrenado con el historico de la estacion (global: 806 muestras).</td></tr>
+      <tr><td style="padding:6px 8px;font-weight:600;background:#0f172a;border-bottom:1px solid #1f2937">Actualizacion</td><td style="padding:6px 8px;border-bottom:1px solid #1f2937">Cada carga de pagina (cache 15 min). Refresca con los datos mas recientes recibidos de LUNA.</td></tr>
+      <tr><td style="padding:6px 8px;font-weight:600;background:#0f172a;border-bottom:1px solid #1f2937">kNN real</td><td style="padding:6px 8px;border-bottom:1px solid #1f2937">Requiere >=200 muestras horarias sin huecos en las variables. Si se cumple, usa vecinos reales.</td></tr>
+      <tr><td style="padding:6px 8px;font-weight:600;background:#0f172a;border-bottom:1px solid #1f2937">Fallback</td><td style="padding:6px 8px;border-bottom:1px solid #1f2937">Si no hay suficientes datos, repite el ultimo valor conocido (sin confianza).</td></tr>
+      <tr><td style="padding:6px 8px;font-weight:600;background:#0f172a;border-bottom:1px solid #1f2937">Prob. lluvia</td><td style="padding:6px 8px;border-bottom:1px solid #1f2937">Se estima a partir de la precipitacion predicha (0-95%).</td></tr>
+      <tr><td style="padding:6px 8px;font-weight:600;background:#0f172a;border-bottom:1px solid #1f2937">MAE</td><td style="padding:6px 8px;border-bottom:1px solid #1f2937">No disponible: no se calculo validacion offline en este modelo.</td></tr>
+    </tbody>
+  </table>
+</div>
+  <div id="pred-tabla" style="margin-top:10px;font-size:.8rem;color:#cbd5e1"></div>
+</div>
+{{ prediccion|json_script:"pred-data" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function(){
+  const d = JSON.parse(document.getElementById('pred-data').textContent || '{}');
+  const info = document.getElementById('pred-info');
+  const tabla = document.getElementById('pred-tabla');
+  if(!d || d.ok === false){ info.textContent = 'Sin modelo disponible (fallback por persistencia).'; return; }
+  const modo = d.fallback ? 'FALLBACK (persistencia del ultimo valor)' : 'kNN real';
+  info.textContent = 'Modo: ' + modo + ' | Modelo: ' + (d.modelo_usado||'') +
+    ' | Muestras: ' + ((d.metricas&&d.metricas.n_muestras)||'n/a') +
+    ' | Entrenado: ' + (d.entrenado_en||'n/a') +
+    ' | Prob. lluvia: ' + (d.prob_lluvia_pct!=null?d.prob_lluvia_pct:'n/a') + '%';
+  const labels = (d.predicciones||[]).map(p=> (p.hora||'').slice(11,16));
+  const temps = (d.predicciones||[]).map(p=> p.temperatura ? p.temperatura.valor : null);
+  const hums = (d.predicciones||[]).map(p=> p.humedad_relativa ? p.humedad_relativa.valor : null);
+  const slides = [
+    {key:'temperatura', label:'Temperatura', unit:'°C', desc:'Temperatura del aire', color:'#fbbf24', grad:'linear-gradient(135deg,#fbbf24,#f59e0b)', icon:'🌡️', data:(d.predicciones||[]).map(p=>p.temperatura?p.temperatura.valor:null)},
+    {key:'humedad_relativa', label:'Humedad relativa', unit:'%', desc:'Humedad del aire', color:'#7dd3fc', grad:'linear-gradient(135deg,#7dd3fc,#38bdf8)', icon:'💧', data:(d.predicciones||[]).map(p=>p.humedad_relativa?p.humedad_relativa.valor:null)},
+    {key:'precipitacion', label:'Precipitacion', unit:'mm', desc:'Lluvia acumulada', color:'#34d399', grad:'linear-gradient(135deg,#34d399,#10b981)', icon:'🌧️', data:(d.predicciones||[]).map(p=>p.precipitacion?p.precipitacion.valor:null)},
+    {key:'velocidad_viento', label:'Viento', unit:'m/s', desc:'Velocidad del viento', color:'#a78bfa', grad:'linear-gradient(135deg,#a78bfa,#8b5cf6)', icon:'🌬️', data:(d.predicciones||[]).map(p=>p.velocidad_viento?p.velocidad_viento.valor:null)},
+    {key:'direccion_viento', label:'Direccion viento', unit:'°', desc:'Direccion (0=N, 90=E)', color:'#f472b6', grad:'linear-gradient(135deg,#f472b6,#ec4899)', icon:'🧭', data:(d.predicciones||[]).map(p=>p.direccion_viento?p.direccion_viento.valor:null)},
+    {key:'radiacion_solar', label:'Radiacion solar', unit:'W/m²', desc:'Radiacion incidente', color:'#facc15', grad:'linear-gradient(135deg,#facc15,#eab308)', icon:'☀️', data:(d.predicciones||[]).map(p=>p.radiacion_solar?p.radiacion_solar.valor:null)},
+  ];
+  const canvas = document.getElementById('pred-chart');
+  let chartInst = null;
+  let idx = 0;
+  function renderSlide(i){
+    idx = (i + slides.length) % slides.length;
+    const sl = slides[idx];
+    const infoEl = document.getElementById('pred-slide-info');
+    if(infoEl) infoEl.innerHTML = '<span style="font-size:1.05rem">' + sl.icon + '</span> <b style="color:'+sl.color+'">' + sl.label + '</b> <span style="opacity:.7">(' + sl.unit + ')</span> <span style="opacity:.6;font-size:.75rem">— ' + sl.desc + '</span> <span style="opacity:.5;font-size:.7rem;margin-left:6px">' + (idx+1) + '/' + slides.length + '</span>';
+    const box = document.getElementById('pred-chart-box');
+    if(box) box.style.background = sl.grad;
+    if(canvas && window.Chart){
+      if(chartInst){ chartInst.destroy(); }
+      chartInst = new Chart(canvas, {type:'line', data:{labels:labels, datasets:[
+        {label:sl.label + ' (' + sl.unit + ')', data:sl.data, borderColor:'#fff', backgroundColor:sl.color, tension:.35, fill:true, pointRadius:4, pointBackgroundColor:'#fff'}
+      ]}, options:{responsive:true, plugins:{legend:{labels:{color:'#fff',font:{weight:'600'}}}},
+        scales:{x:{ticks:{color:'#fff'}}, y:{ticks:{color:'#fff'}}}}});
+    }
+  }
+  renderSlide(0);
+  const prev = document.getElementById('pred-prev');
+  const next = document.getElementById('pred-next');
+  if(prev) prev.onclick = ()=>renderSlide(idx-1);
+  if(next) next.onclick = ()=>renderSlide(idx+1);
+  // tabla
+  const thStyle = 'padding:6px 8px;text-align:left;font-weight:600;color:#e2e8f0;background:#1e293b;border-bottom:2px solid #334155';
+  const tdStyle = 'padding:6px 8px;border-bottom:1px solid #1f2937';
+  let html = '<table style="width:100%;border-collapse:separate;border-spacing:0;border:1px solid #334155;border-radius:8px;overflow:hidden;font-size:.8rem"><thead><tr>' +
+    '<th style="'+thStyle+'">Horizonte</th>' +
+    '<th style="'+thStyle+'">Temp (°C)</th>' +
+    '<th style="'+thStyle+'">Hum (%)</th>' +
+    '<th style="'+thStyle+'">Precip</th>' +
+    '<th style="'+thStyle+'">Viento</th>' +
+    '<th style="'+thStyle+'">Dir (°)</th>' +
+    '<th style="'+thStyle+'">Rad</th>' +
+    '<th style="'+thStyle+'">Conf(temp)</th>' +
+    '</tr></thead><tbody>';
+  (d.predicciones||[]).forEach((p,i)=>{
+    const rowBg = i%2===0 ? '#0f172a' : '#111827';
+    html += '<tr style="background:'+rowBg+'">' +
+      '<td style="'+tdStyle+';font-weight:600;color:#fbbf24">+'+p.horizonte_h+'h</td>' +
+      '<td style="'+tdStyle+'">'+ (p.temperatura&&p.temperatura.valor!=null?p.temperatura.valor:'—') +'</td>' +
+      '<td style="'+tdStyle+'">'+ (p.humedad_relativa&&p.humedad_relativa.valor!=null?p.humedad_relativa.valor:'—') +'</td>' +
+      '<td style="'+tdStyle+'">'+ (p.precipitacion&&p.precipitacion.valor!=null?p.precipitacion.valor:'—') +'</td>' +
+      '<td style="'+tdStyle+'">'+ (p.velocidad_viento&&p.velocidad_viento.valor!=null?p.velocidad_viento.valor:'—') +'</td>' +
+      '<td style="'+tdStyle+'">'+ (p.direccion_viento&&p.direccion_viento.valor!=null?p.direccion_viento.valor:'—') +'</td>' +
+      '<td style="'+tdStyle+'">'+ (p.radiacion_solar&&p.radiacion_solar.valor!=null?p.radiacion_solar.valor:'—') +'</td>' +
+      '<td style="'+tdStyle+';color:#94a3b8">'+ (p.temperatura&&p.temperatura.confianza!=null?p.temperatura.confianza:'—') +'</td>' +
+      '</tr>';
+  });
+  html += '</table>';
+  tabla.innerHTML = html;
+})();
+</script>
+
 </body>
 </html>

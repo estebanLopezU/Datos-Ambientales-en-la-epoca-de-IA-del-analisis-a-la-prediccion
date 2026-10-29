@@ -39,4 +39,6 @@ urlpatterns = [
          ambient_vistas.ambient_serie, name='ambient_serie'),
     path('api/v1/ambient/pronostico/',
          ambient_vistas.ambient_pronostico, name='ambient_pronostico'),
+    path('api/v1/ambient/prediccion/',
+         ambient_vistas.ambient_prediccion, name='ambient_prediccion'),
 ]

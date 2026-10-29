@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 """Pruebas del modulo Ambient (estacion 99, aislada de 24/29)."""
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone
 
 from estaciones.models import ConsolaAmbient, Estacion, Lectura
 from estaciones.api.ambient import (
-    AMBIENT_CODIGO, dispositivo_desde_params, traducir_ambient,
+    AMBIENT_CODIGO, dispositivo_desde_params, estacion_ambient,
+    traducir_ambient,
 )
+from estaciones.api import ambient_vistas
 
 
 class TraducirAmbientTest(TestCase):
@@ -175,3 +178,123 @@ class RedAmbientTest(TestCase):
         d = self.client.get("/ambient/", {"consola": "LUNA"})
         self.assertEqual(d.status_code, 200)
         self.assertContains(d, "LUNA")
+
+
+class SondeoRedTest(TestCase):
+    """El badge EN LINEA tambien mira la red, no solo los datos."""
+
+    def _alcanzable(self, resultado):
+        return patch.object(ambient_vistas, "_tcp_responde",
+                            return_value=False), \
+               patch.object(ambient_vistas, "_ping", return_value=resultado)
+
+    def test_sin_ip_no_se_puede_saber(self):
+        self.assertIsNone(ambient_vistas._alcanzable(None))
+        self.assertIsNone(ambient_vistas._alcanzable(""))
+
+    def test_ping_respuesta_y_fallo(self):
+        tcp, ping = self._alcanzable(True)
+        with tcp, ping:
+            self.assertTrue(ambient_vistas._alcanzable("192.168.137.245"))
+        tcp, ping = self._alcanzable(False)
+        with tcp, ping:
+            self.assertFalse(ambient_vistas._alcanzable("192.168.137.246"))
+
+    def test_ping_indeterminado_devuelve_none(self):
+        tcp, ping = self._alcanzable(None)
+        with tcp, ping:
+            self.assertIsNone(ambient_vistas._alcanzable("192.168.137.247"))
+
+    def test_cache_no_repite_el_sondeo(self):
+        ip = "192.168.137.248"
+        with patch.object(ambient_vistas, "_tcp_responde",
+                          return_value=False) as tcp, \
+                patch.object(ambient_vistas, "_ping",
+                             return_value=True) as ping:
+            primera = ambient_vistas._alcanzable(ip)
+            segunda = ambient_vistas._alcanzable(ip)     # servida del cache
+        self.assertTrue(primera)
+        self.assertTrue(segunda)
+        # Un solo sondeo real para las dos llamadas (TTL de 30 s).
+        self.assertEqual(tcp.call_count, 1)
+        self.assertEqual(ping.call_count, 1)
+
+    def test_estado_reportando(self):
+        c = ConsolaAmbient.objects.create(
+            device_id="VIVA", nombre="VIVA", ip_origen="192.168.137.10",
+            ultimo_reporte=timezone.now())
+        en_linea, motivo, hace = ambient_vistas.estado_red(c)
+        self.assertTrue(en_linea)
+        self.assertEqual(motivo, "reporte")
+        self.assertLessEqual(hace, 60)
+
+    def test_estado_conectada_sin_datos(self):
+        vieja = ConsolaAmbient.objects.create(
+            device_id="CALLADA", nombre="CALLADA",
+            ip_origen="192.168.137.11",
+            ultimo_reporte=timezone.now() - timedelta(days=5))
+        with patch.object(ambient_vistas, "_alcanzable", return_value=True):
+            en_linea, motivo, _ = ambient_vistas.estado_red(vieja)
+        # El punto de todo: conectada a la red pero sin enviar lecturas.
+        self.assertTrue(en_linea)
+        self.assertEqual(motivo, "red")
+        self.assertEqual(ambient_vistas.estado_texto(motivo),
+                         "EN LINEA · sin datos")
+
+    def test_estado_sin_conexion(self):
+        muerta = ConsolaAmbient.objects.create(
+            device_id="MUERTA", nombre="MUERTA",
+            ip_origen="192.168.137.12",
+            ultimo_reporte=timezone.now() - timedelta(days=5))
+        with patch.object(ambient_vistas, "_alcanzable", return_value=False):
+            en_linea, motivo, _ = ambient_vistas.estado_red(muerta)
+        self.assertFalse(en_linea)
+        self.assertEqual(motivo, "sin-red")
+
+    def test_estado_desconocido_sin_sondeo(self):
+        # Vercel no alcanza la LAN: se queda con el veredicto de los datos.
+        remota = ConsolaAmbient.objects.create(
+            device_id="REMOTA", nombre="REMOTA",
+            ip_origen="192.168.137.13",
+            ultimo_reporte=timezone.now() - timedelta(days=5))
+        with patch.object(ambient_vistas, "_alcanzable", return_value=None):
+            en_linea, motivo, _ = ambient_vistas.estado_red(remota)
+        self.assertFalse(en_linea)
+        self.assertEqual(motivo, "desconocido")
+        self.assertEqual(ambient_vistas.estado_texto(motivo),
+                         "SIN DATOS RECIENTES")
+
+    def test_estado_nunca_reporto(self):
+        nueva = ConsolaAmbient.objects.create(device_id="NUEVA", nombre="NUEVA")
+        en_linea, motivo, _ = ambient_vistas.estado_red(nueva)
+        self.assertFalse(en_linea)
+        self.assertEqual(motivo, "nunca")
+
+    def test_panel_detalle_muestra_conectada_sin_datos(self):
+        # LUNA con la ultima lectura vieja pero viva en la red.
+        est = estacion_ambient()
+        Lectura.objects.create(
+            estacion=est, timestamp=timezone.now() - timedelta(days=3),
+            temperatura=21.6, humedad_relativa=70.0, velocidad_viento=1.2)
+        ConsolaAmbient.objects.create(
+            device_id="LUNA", nombre="LUNA", estacion=est,
+            ip_origen="192.168.137.245",
+            ultimo_reporte=timezone.now() - timedelta(days=3))
+        with patch.object(ambient_vistas, "_alcanzable", return_value=True):
+            r = self.client.get("/ambient/", {"consola": "LUNA"})
+        self.assertContains(r, "EN LINEA · sin datos")
+
+    def test_api_ultima_incluye_veredicto(self):
+        est = estacion_ambient()
+        Lectura.objects.create(
+            estacion=est, timestamp=timezone.now() - timedelta(days=3),
+            temperatura=21.6, humedad_relativa=70.0)
+        ConsolaAmbient.objects.create(
+            device_id="LUNA", nombre="LUNA", estacion=est,
+            ip_origen="192.168.137.245",
+            ultimo_reporte=timezone.now() - timedelta(days=3))
+        with patch.object(ambient_vistas, "_alcanzable", return_value=True):
+            j = self.client.get("/api/v1/ambient/ultima/").json()
+        self.assertTrue(j["en_linea"])
+        self.assertEqual(j["motivo"], "red")
+        self.assertEqual(j["estado_txt"], "EN LINEA · sin datos")

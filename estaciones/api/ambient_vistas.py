@@ -2,12 +2,17 @@
 # -*- coding: utf-8 -*-
 """Vistas HTTP del modulo Ambient (receptor + APIs propias aisladas)."""
 import math
+import os
+import socket
+import subprocess
+import time
 
 from estaciones.api.ambient import (
     AMBIENT_CODIGO, dispositivo_desde_params, estacion_ambient,
     traducir_ambient,
 )
 
+from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -17,6 +22,18 @@ from estaciones.models import ConsolaAmbient, Estacion, Lectura
 
 # Minutos sin reportar para considerar una consola fuera de linea.
 UMBRAL_OFFLINE_MIN = 10
+
+# --- sondeo de red (¿la consola sigue conectada aunque no Reporte?) --------
+TTL_SONDA_S = 30
+PUERTOS_SONDA = (80, 443)
+TIMEOUT_TCP_S = 0.8
+TIMEOUT_PING_MS = 1500
+
+
+def _sondeo_habilitado():
+    if os.environ.get("AMBIENT_SONDA_RED", "1").strip() == "0":
+        return False
+    return not getattr(settings, "EN_VERCEL", False)
 
 
 def _rocio(t, hr):
@@ -186,11 +203,16 @@ def ambient_ultima(request):
     if ultima is None:
         return JsonResponse({"ok": True, "disponible": False,
                              "mensaje": "aun no hay datos del Ambient"})
+    consola = ConsolaAmbient.objects.filter(estacion=est).first()
+    en_linea, motivo, _hace = estado_red(consola, edad_lectura_seg=int((timezone.now() - ultima.timestamp).total_seconds()))
     return JsonResponse({
         "ok": True,
         "disponible": True,
         "codigo": AMBIENT_CODIGO,
         "nombre": est.nombre,
+        "en_linea": en_linea,
+        "motivo": motivo,
+        "estado_txt": estado_texto(motivo),
         "timestamp": timezone.localtime(ultima.timestamp).isoformat(),
         # Edad (s) de la ultima lectura calculada en el SERVIDOR: el panel
         # refresca el badge EN LINEA/OFFLINE solo con el hace_seg de cada
@@ -356,3 +378,106 @@ def ambient_pronostico(request):
         return JsonResponse({"ok": True, "cache": False, **dato})
     except Exception as e:
         return JsonResponse({"ok": False, "mensaje": str(e)[:120]})
+
+@csrf_exempt
+@require_GET
+def ambient_prediccion(request):
+    """GET /api/v1/ambient/prediccion/?consola=LUNA&horizonte=6"""
+    device_id = (request.GET.get("consola") or "LUNA").strip() or "LUNA"
+    try:
+        horizonte = int(request.GET.get("horizonte", 6))
+    except (ValueError, TypeError):
+        horizonte = 6
+    horizonte = max(1, min(horizonte, 24))
+    from estaciones.ml.predictor import predecir
+    try:
+        data = predecir(device_id, horizonte=horizonte)
+    except Exception as e:
+        data = {"ok": False, "motivo": str(e)[:120]}
+    return JsonResponse(data)
+
+
+_ALCANZABLE_CACHE = {}
+_ALCANZABLE_TTL = 30
+
+
+def _tcp_responde(ip):
+    """¿Algun puerto de la consola acepta conexion? (no pide privilegios)."""
+    if not _sondeo_habilitado():
+        return False
+    for puerto in PUERTOS_SONDA:
+        try:
+            with socket.create_connection((ip, puerto),
+                                          timeout=TIMEOUT_TCP_S):
+                return True
+        except OSError:
+            continue
+    return False
+
+
+def _ping(ip):
+    """ICMP. True si responde; None si no se pudo determinar."""
+    if not _sondeo_habilitado():
+        return None
+    comando = (["ping", "-n", "1", "-w", str(TIMEOUT_PING_MS), ip]
+               if os.name == "nt"
+               else ["ping", "-c", "1", "-W", "2", ip])
+    try:
+        r = subprocess.run(comando, capture_output=True,
+                           timeout=(5 if os.name == "nt" else 4))
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return r.returncode == 0
+
+
+def _alcanzable(ip):
+    if not ip or not _sondeo_habilitado():
+        return None
+    now = time.time()
+    if ip in _ALCANZABLE_CACHE:
+        ts, val = _ALCANZABLE_CACHE[ip]
+        if now - ts < _ALCANZABLE_TTL:
+            return val
+    try:
+        if _tcp_responde(ip):
+            val = True
+        else:
+            val = _ping(ip)
+    except Exception:
+        val = None
+    _ALCANZABLE_CACHE[ip] = (now, val)
+    return val
+
+
+def consola_de_estacion(est_pk):
+    return ConsolaAmbient.objects.filter(estacion_id=est_pk).first()
+
+
+def estado_red(consola, edad_lectura_seg=None, ahora=None):
+    if consola is None:
+        return False, "nunca", None
+    if consola.ultimo_reporte is None:
+        return False, "nunca", None
+    if ahora is None:
+        ahora = timezone.now()
+    hace = int((ahora - consola.ultimo_reporte).total_seconds())
+    if hace <= UMBRAL_OFFLINE_MIN * 60:
+        return True, "reporte", hace
+    ip = getattr(consola, "ip_origen", None)
+    alcanzable = _alcanzable(ip) if ip else None
+    if alcanzable is True:
+        return True, "red", hace
+    if alcanzable is False:
+        return False, "sin-red", hace
+    return False, "desconocido", hace
+
+
+def estado_texto(motivo):
+    return {
+        "reporte": "EN LINEA",
+        "red": "EN LINEA · sin datos",
+        "sin-red": "SIN CONEXION",
+        "desconocido": "SIN DATOS RECIENTES",
+        "nunca": "SIN DATOS RECIENTES",
+    }.get(motivo, "SIN DATOS RECIENTES")
+

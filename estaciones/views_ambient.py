@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone as dt_utc
 from django.shortcuts import render
 from django.utils import timezone
 
-from estaciones.api.ambient_vistas import UMBRAL_OFFLINE_MIN
+from estaciones.api.ambient_vistas import UMBRAL_OFFLINE_MIN, estado_red, estado_texto, consola_de_estacion
 from estaciones.models import ConsolaAmbient, Estacion, Lectura
 from estaciones.api.ambient import AMBIENT_CODIGO
 
@@ -283,13 +283,13 @@ def _detalle(request, est, device_id):
     pico_rachas = None
     pico_rad = None
     ayer_t = ayer_h = None
+    consola_db = consola_de_estacion(est.pk) if est is not None else None
     if est is not None:
         ultima = (Lectura.objects.filter(estacion=est)
                   .order_by("-timestamp").first())
         if ultima is not None:
             delta = timezone.now() - ultima.timestamp
             hace = delta
-            en_linea = delta <= timedelta(minutes=UMBRAL_OFFLINE_MIN)
             consola = _consola(ultima, est)
             # Max/min del dia + racha pico del dia (para la consola).
             inicio_dia = timezone.localtime(ultima.timestamp).replace(
@@ -365,6 +365,13 @@ def _detalle(request, est, device_id):
                 r["precipitacion"] = r.pop("lluvia_dia")
             else:
                 r.pop("lluvia_dia", None)
+    estado_txt_val = "SIN DATOS RECIENTES"
+    if ultima is not None:
+        en_linea, motivo, _ = estado_red(
+            consola_db, edad_lectura_seg=int(hace.total_seconds()))
+        estado_txt_val = estado_texto(motivo)
+    else:
+        en_linea = False
     if ultima is not None:
         ultima_hora = timezone.localtime(ultima.timestamp)
     else:
@@ -394,6 +401,12 @@ def _detalle(request, est, device_id):
                                     else "EXTREME" if uv is not None else None)
         except TypeError:
             consola["uv_riesgo"] = None
+    try:
+        from estaciones.ml.predictor import predecir
+        prediccion = predecir(device_id, horizonte=6)
+    except Exception:
+        prediccion = {"ok": False, "motivo": "error"}
+
     ctx = {
         "estacion": est,
         "stats": stats if ultima is not None else None,
@@ -405,10 +418,12 @@ def _detalle(request, est, device_id):
         "ultima_hora": ultima_hora,
         "hace_seg": int(hace.total_seconds()) if hace is not None else None,
         "en_linea": en_linea,
+        "estado_txt": estado_txt_val,
         "recientes": recientes,
         "escena": _escena_inicial(consola)[0] if en_linea else "standby",
         "momento": _escena_inicial(consola)[1],
         "amanecer": _amanecer_atadecer()[0],
         "atardecer": _amanecer_atadecer()[1],
+        "prediccion": prediccion,
     }
     return render(request, "ambient_consola.html", ctx)
